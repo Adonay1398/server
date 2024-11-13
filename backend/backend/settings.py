@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
-from dotenv import load_dotenv
+#from dotenv import load_dotenv
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -56,6 +56,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'api',
     'rest_framework',
+    'rest_framework_simplejwt',
+
     'corsheaders',
 
 ]
@@ -63,6 +65,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -95,7 +98,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
+""" DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         "NAME": "dbtutores",
@@ -104,7 +107,17 @@ DATABASES = {
         "HOST": "localhost",
         "PORT": "5432",    }
 }
+ """
+ 
+import dj_database_url
 
+
+DATABASES = {
+    'default': dj_database_url.config(
+        default='postgresql://dbtest_ik13_user:xPubywJhSpylUnwt1WE0l4rOWGeWLj2q@dpg-csnvttqj1k6c73badr3g-a.oregon-postgres.render.com/dbtest_ik13'
+    )
+}
+ 
 
 
 # Password validation
@@ -150,3 +163,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+
+#ALLOWED_HOSTS = ['postgresql://dbtest_ik13_user:xPubywJhSpylUnwt1WE0l4rOWGeWLj2q@dpg-csnvttqj1k6c73badr3g-a.oregon-postgres.render.com/dbtest_ik13', 'localhost']
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
