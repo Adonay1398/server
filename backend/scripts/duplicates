@@ -1,0 +1,14 @@
+from api.models import Constructo
+
+def clean_duplicates():
+    descriptions = Constructo.objects.values_list('descripcion', flat=True)
+    duplicates = [desc for desc in descriptions if descriptions.count(desc) > 1]
+
+    for desc in duplicates:
+        constructos = Constructo.objects.filter(descripcion=desc)
+        primary_constructo = constructos.first()  # Mantener el primer objeto
+        for duplicate in constructos[1:]:
+            # Aquí puedes manejar la consolidación de datos si es necesario
+            duplicate.delete()
+
+clean_duplicates()
