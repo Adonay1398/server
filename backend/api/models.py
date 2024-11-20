@@ -11,10 +11,21 @@ class Profile(models.Model):
         return self.nombre
 
 
+
 class Instituto(models.Model):
+    FEDERAL = 'federal'
+    RURAL = 'rural'
+    ESTATAL = 'estatal'
+
+    TIPO_INSTITUTO_CHOICES = [
+        (FEDERAL, 'Federal'),
+        (RURAL, 'Rural'),
+        (ESTATAL, 'Estatal'),
+    ]
+
     cve_inst = models.AutoField(primary_key=True)
     nombre_completo = models.CharField(max_length=255)
-    federal = models.BooleanField()
+    tipo = models.CharField(max_length=10, choices=TIPO_INSTITUTO_CHOICES, default=FEDERAL)
     ruta = models.CharField(max_length=255)
 
     def __str__(self):
@@ -69,7 +80,7 @@ class Pregunta(models.Model):
     cve_const2 = models.ForeignKey(Constructo, on_delete=models.SET_NULL, null=True, related_name='const2')
     cve_const3 = models.ForeignKey(Constructo, on_delete=models.SET_NULL, null=True, related_name='const3')
     cve_const4 = models.ForeignKey(Constructo, on_delete=models.SET_NULL, null=True, related_name='const4')
-
+    #checar
     def __str__(self):
         return self.texto_pregunta
 
@@ -166,3 +177,4 @@ class Reporte(models.Model):
 
     def __str__(self):
         return f"Reporte {self.cve_reporte} - {self.fecha}"
+    
