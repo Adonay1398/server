@@ -14,6 +14,9 @@ from pathlib import Path
 from datetime import timedelta
 #from dotenv import load_dotenv
 import os
+import dj_database_url
+from pathlib import Path
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,13 +26,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')
+
 SECRET_KEY = 'django-insecure-&%$jrf&gk0ern1(!%=xmeh)$1f$)f6p*p!rm=xsmr$27g4^9-y'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ["*"]
-
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost').split(',')
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -64,6 +68,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     "corsheaders.middleware.CorsMiddleware",
     'django.middleware.common.CommonMiddleware',
@@ -107,17 +112,17 @@ WSGI_APPLICATION = 'backend.wsgi.application'
         "HOST": "localhost",
         "PORT": "5432",    }
 }
- """
- 
-import dj_database_url
+"""
+
 
 
 DATABASES = {
     'default': dj_database_url.config(
-        default='postgresql://dbtest_ik13_user:xPubywJhSpylUnwt1WE0l4rOWGeWLj2q@dpg-csnvttqj1k6c73badr3g-a.oregon-postgres.render.com/dbtest_ik13'
+        default=os.getenv('DATABASE_URL','postgresql://dbtest_ik13_user:xPubywJhSpylUnwt1WE0l4rOWGeWLj2q@dpg-csnvttqj1k6c73badr3g-a.oregon-postgres.render.com/dbtest_ik13'),
+        conn_max_age=600
     )
 }
- 
+
 
 
 # Password validation
@@ -155,6 +160,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+if not DEBUG:
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
