@@ -45,7 +45,7 @@ class Carrera(models.Model):
     cve_carrera = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=255)
     departamento = models.ForeignKey(Departamento, on_delete=models.CASCADE)
-    instituto = models.ForeignKey(Instituto, on_delete=models.CASCADE)
+    instituto = models.ForeignKey('Instituto', on_delete=models.CASCADE)
 
     def __str__(self):
         return self.nombre
@@ -93,15 +93,6 @@ class TipoRespuesta(models.Model):
         return self.descripcion
 
 
-class Respuesta(models.Model):
-    id_resp = models.AutoField(primary_key=True)
-    pregunta = models.ForeignKey(Pregunta, on_delete=models.CASCADE)
-    cve_aplic = models.ForeignKey('DatosAplicacion', on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    valor = models.TextField()
-
-    def __str__(self):
-        return f"Respuesta de {self.user} a {self.pregunta}"
 
 
 class DatosAplicacion(models.Model):
@@ -112,8 +103,17 @@ class DatosAplicacion(models.Model):
     observaciones = models.TextField()
 
     def __str__(self):
-        return f"Aplicación {self.cuestionario.nombre_corto} - {self.fecha}"
+        return f"Aplicación {self.cve_aplic} - {self.fecha}"
+    
+class Respuesta(models.Model):
+    cve_resp = models.AutoField(primary_key=True)
+    pregunta = models.ForeignKey(Pregunta, on_delete=models.CASCADE)
+    cve_aplic = models.ForeignKey(DatosAplicacion, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    valor = models.TextField()
 
+    def __str__(self):
+        return f"Respuesta de {self.user} a {self.pregunta}"
 
 class ScoreAplicacion(models.Model):
     cve_score = models.AutoField(primary_key=True)
@@ -125,10 +125,11 @@ class ScoreAplicacion(models.Model):
         return f"Score {self.user} - {self.total}"
 
 class ScoreConstructo(models.Model):
+    cve_scoreConstructo = models.AutoField(primary_key=True)
     aplicacion = models.ForeignKey(DatosAplicacion, on_delete=models.CASCADE)
     usuario = models.ForeignKey(User , on_delete=models.CASCADE)
     constructo = models.ForeignKey(Constructo, on_delete=models.CASCADE)
-    score = models.DecimalField(max_digits=10, decimal_places=2)
+    score = models.IntegerField()
 
     def __str__(self):
         return f"Score Constructo {self.constructo.descripcion} - {self.score}"
@@ -147,10 +148,11 @@ class IndicadorConstructo(models.Model):
 
 
 class ScoreIndicador(models.Model):
+    cve_ScoreIndicador = models.AutoField(primary_key=True)
     aplicacion = models.ForeignKey(DatosAplicacion, on_delete=models.CASCADE)
     usuario = models.ForeignKey(User, on_delete=models.CASCADE)
     indicador = models.ForeignKey(Indicador, on_delete=models.CASCADE)
-    score = models.DecimalField(max_digits=10, decimal_places=2)
+    score = models.IntegerField()
 
     def __str__(self):
         return f"Score Indicador {self.indicador.nombre} - {self.score}"
@@ -158,9 +160,10 @@ class ScoreIndicador(models.Model):
 class RetroChatGPT(models.Model):
     cve_retro = models.AutoField(primary_key=True)
     cve_score = models.ForeignKey(ScoreAplicacion, on_delete=models.CASCADE)
-    texto1 = models.TextField()
-    texto2 = models.TextField(blank=True, null=True)
-    texto3 = models.TextField(blank=True, null=True)
+    texto1 = models.FileField(upload_to='csv_files/')
+    texto2 = models.FileField(upload_to='csv_files/', blank=True, null=True)
+    texto3 = models.FileField(upload_to='csv_files/', blank=True, null=True)
+
 
     def __str__(self):
         return f"Retroalimentación para Score {self.cve_score}"
@@ -173,6 +176,7 @@ class Reporte(models.Model):
     total = models.FloatField()
     fecha = models.DateField()
     hora = models.TimeField()
+    texto = models.FileField(upload_to='csv_files/',default='csv_files/default.csv')
     observaciones = models.TextField(blank=True, null=True)
 
     def __str__(self):
