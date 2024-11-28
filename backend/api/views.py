@@ -1,7 +1,7 @@
 from rest_framework import generics
 from rest_framework.permissions import AllowAny, IsAuthenticated, DjangoModelPermissions,IsAdminUser
 from django.contrib.auth.models import User
-from .models import ScoreConstructo, Indicador, Constructo, Profile
+from .models import ScoreConstructo, Indicador, Constructo
 from .serializers import * #UserSerializer, ScoreConstructoSerializer, IndicadorSerializer, ConstructoSerializer, ScoreIndicadorSerializer,ScoreIndicador
 from .permissions import IsOwner
 
@@ -21,7 +21,7 @@ class CreateTutorView(generics.CreateAPIView):
     def perform_create(self, serializer):
         serializer.save()
     
-class ProfileListView(generics.ListAPIView):
+""" class ProfileListView(generics.ListAPIView):
     queryset = Profile.objects.all().select_related('user','carrera')
     serializer_class = ProfileSerializer
     permission_classes = [IsAuthenticated, DjangoModelPermissions,IsOwner]
@@ -32,7 +32,7 @@ class ProfileDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ProfileSerializer
     permission_classes = [IsAuthenticated, DjangoModelPermissions,IsOwner]
     lookup_field = 'pk'
-    
+     """
 class UserScoreConstructoListView(generics.ListAPIView):
     serializer_class = ScoreConstructoSerializer
     permission_classes = [IsAuthenticated, DjangoModelPermissions]

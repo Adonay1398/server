@@ -86,7 +86,7 @@ class CuestionarioDetailSerializer(serializers.ModelSerializer):
         fields = ['cve_cuestionario', 'nombre_corto', 'nombre_largo', 'observaciones', 'preguntas']
         
 
-
+""" 
 class ProfileSerializer(serializers.ModelSerializer):
     
     user = UserSerializer()
@@ -95,7 +95,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ['id','user','carrera','nombre']
-
+ """
 
 class ConstructoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -144,7 +144,7 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'password2']
+        fields = ['username', 'email', 'password', 'password2'] #modificar el email quitar  
 
     def validate(self, data):
         if data['password'] != data['password2']:
@@ -199,9 +199,9 @@ class ReporteDetailSerializer(serializers.ModelSerializer):
 class UserRelatedDataSerializer(serializers.ModelSerializer):
     score_constructos = ScoreConstructoSerializer(many=True, source='scoreconstructo_set')
     score_indicadores = ScoreIndicadorSerializer(many=True, source='scoreindicador_set')
-    profile = ProfileSerializer()
+    username = serializers.CharField(source='user.username')
 
     class Meta:
         model = User
-        fields = ['id', 'profile','username', 'email', 'score_constructos', 'score_indicadores']
+        fields = ['id','username', 'email', 'score_constructos', 'score_indicadores']
         
