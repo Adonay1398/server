@@ -4,14 +4,17 @@ from .models import * # ScoreConstructo, Constructo, Indicador, IndicadorConstru
 from django.contrib.auth import authenticate
 from django.utils.translation import gettext_lazy as _
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth import get_user_model
+
 
 
 #Serializadores para los modelos de la base de datos
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email']
+        fields = ['id', 'username', 'email']    
         
+User = get_user_model()
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     username_field = 'email'  # Especifica que el campo de autenticación es 'email'
 
