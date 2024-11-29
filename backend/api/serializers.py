@@ -2,13 +2,42 @@ from rest_framework import serializers
 from django.contrib.auth.models import User,Group
 from .models import * # ScoreConstructo, Constructo, Indicador, IndicadorConstructo, ScoreIndicador,Carrera,Profile
 
+User = get_user_model()
 
 #Serializadores para los modelos de la base de datos
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email']
+        fields = ['id', 'username', 'email']    
         
+User = get_user_model()
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        email = attrs.get("email")
+        password = attrs.get("password")
+
+        # Busca el usuario por email
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise AuthenticationFailed('No user found with this email.')
+
+        # Valida la contraseña
+        if not user.check_password(password):
+            raise AuthenticationFailed('Incorrect password.')
+
+        # Añade el usuario al contexto para seguir el flujo de TokenObtainPairSerializer
+        attrs["username"] = user.username
+        return super().validate(attrs)
+
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['email'] = user.email  # Agrega el email al token si lo deseas
+        return token
+
+
 class CarreraSerializer(serializers.ModelSerializer):
     class Meta:
         model = Carrera
@@ -203,5 +232,5 @@ class UserRelatedDataSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'profile','username', 'email', 'score_constructos', 'score_indicadores']
+        fields = ['id','username', 'email', 'score_constructos', 'score_indicadores']
         
