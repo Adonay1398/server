@@ -5,6 +5,7 @@ from django.contrib.auth import authenticate
 from django.utils.translation import gettext_lazy as _
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import get_user_model
+from rest_framework.exceptions import AuthenticationFailed
 
 
 
@@ -15,21 +16,31 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email']    
         
 User = get_user_model()
+
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    username_field = 'email'  # Especifica que el campo de autenticación es 'email'
-
     def validate(self, attrs):
-        # Sobrescribimos el método validate para usar el email
-        self.user = authenticate(
-            username=attrs.get('email'),
-            password=attrs.get('password')
-        )
+        email = attrs.get("email")
+        password = attrs.get("password")
 
-        if self.user is None or not self.user.is_active:
-            raise serializers.ValidationError(_('No se pudo autenticar con las credenciales proporcionadas.'))
+        # Busca el usuario por email
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise AuthenticationFailed('No user found with this email.')
 
+        # Valida la contraseña
+        if not user.check_password(password):
+            raise AuthenticationFailed('Incorrect password.')
+
+        # Añade el usuario al contexto para seguir el flujo de TokenObtainPairSerializer
+        attrs["username"] = user.username
         return super().validate(attrs)
 
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['email'] = user.email  # Agrega el email al token si lo deseas
+        return token
 
 
 class CarreraSerializer(serializers.ModelSerializer):

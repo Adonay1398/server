@@ -5,7 +5,9 @@ from .models import ScoreConstructo, Indicador, Constructo
 from .serializers import * #UserSerializer, ScoreConstructoSerializer, IndicadorSerializer, ConstructoSerializer, ScoreIndicadorSerializer,ScoreIndicador
 from .permissions import IsOwner
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import CustomTokenObtainPairSerializer
+
+
+
 
 class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -25,6 +27,11 @@ class CreateTutorView(generics.CreateAPIView):
     
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+    
+    
+    
+    
+    
 class ProfileListView(generics.ListAPIView):
     queryset = Profile.objects.all().select_related('user','carrera')
     serializer_class = ProfileSerializer
