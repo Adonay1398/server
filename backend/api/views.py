@@ -7,7 +7,7 @@ from .models import ScoreConstructo, Indicador, Constructo, Profile
 from .serializers import * #UserSerializer, ScoreConstructoSerializer, IndicadorSerializer, ConstructoSerializer, ScoreIndicadorSerializer,ScoreIndicador
 from .permissions import IsOwner
 from rest_framework_simplejwt.views import TokenObtainPairView
-
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
