@@ -1,9 +1,15 @@
+from django.http import JsonResponse
+from rest_framework.response import Response
 from rest_framework import generics
 from rest_framework.permissions import AllowAny, IsAuthenticated, DjangoModelPermissions,IsAdminUser
 from django.contrib.auth.models import User
 from .models import ScoreConstructo, Indicador, Constructo, Profile
 from .serializers import * #UserSerializer, ScoreConstructoSerializer, IndicadorSerializer, ConstructoSerializer, ScoreIndicadorSerializer,ScoreIndicador
 from .permissions import IsOwner
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+
+
 
 class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -20,6 +26,13 @@ class CreateTutorView(generics.CreateAPIView):
     
     def perform_create(self, serializer):
         serializer.save()
+    
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+    
+    
+    
+    
     
 class ProfileListView(generics.ListAPIView):
     queryset = Profile.objects.all().select_related('user','carrera')
