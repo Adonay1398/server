@@ -14,7 +14,8 @@ urlpatterns = [
     path("api/token/", LoginView.as_view(), name="get_token"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="refresh"), 
     path("api-auth/", include("rest_framework.urls")),
-    
+    path('api/validate-token/', ValidateTokenView.as_view(), name='validate-token'),
+
     path('profile/',ProfileListView.as_view(), name='profile-list'),
     path('profile/<int:pk>/', ProfileDetailView.as_view(), name='profile-detail'),
     path('score-constructo/', ScoreConstructoListViews.as_view(), name='score-constructo-list'),
