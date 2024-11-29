@@ -235,3 +235,16 @@ class UserRelatedDataSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id','username', 'email', 'score_constructos', 'score_indicadores']
         
+
+from rest_framework_simplejwt.tokens import UntypedToken
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+
+class TokenValidationSerializer(serializers.Serializer):
+    token = serializers.CharField()
+
+    def validate_token(self, value):
+        try:
+            UntypedToken(value)
+        except (InvalidToken, TokenError) as e:
+            raise serializers.ValidationError("Token inválido o expirado.")
+        return value

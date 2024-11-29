@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from rest_framework.response import Response
-from rest_framework import generics
+from rest_framework import generics,status
 from rest_framework.permissions import AllowAny, IsAuthenticated, DjangoModelPermissions,IsAdminUser
 from django.contrib.auth.models import User
 from .models import ScoreConstructo, Indicador, Constructo, Profile
@@ -8,7 +8,17 @@ from .serializers import * #UserSerializer, ScoreConstructoSerializer, Indicador
 from .permissions import IsOwner
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.views import APIView
 
+
+class ValidateTokenView(APIView):
+    def post(self, request):
+        serializer = TokenValidationSerializer(data=request.data)
+        if serializer.is_valid():
+            return Response({"detail": "Token válido."}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 class LoginView(APIView):
     permission_classes = [AllowAny]
 
@@ -24,11 +34,11 @@ class LoginView(APIView):
             response = JsonResponse({"message": "Login successful"})
             response.set_cookie(
                 'jwt', access_token, 
-                httponly=True,  # No accesible desde JavaScript
+                httponly=False,  # No accesible desde JavaScript
                 secure=False,  # Solo en HTTPS
                 samesite= 'None',  # Impide el envío en solicitudes cruzadas
                 path='/',  # Hacer la cookie accesible en todo el dominio
-                max_age=3600,
+                
             )
             return response
         else:
