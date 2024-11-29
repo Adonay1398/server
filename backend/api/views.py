@@ -9,7 +9,29 @@ from .permissions import IsOwner
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 
+class LoginView(APIView):
+    permission_classes = [AllowAny]
 
+    def post(self, request, *args, **kwargs):
+        # Usar el serializer para obtener el token
+        serializer = TokenObtainPairSerializer(data=request.data)
+        if serializer.is_valid():
+            # Obtener el token
+            refresh_token = serializer.validated_data['refresh']
+            access_token = serializer.validated_data['access']
+
+            # Establecer el token en la cookie (HttpOnly, Secure y SameSite)
+            response = JsonResponse({"message": "Login successful"})
+            response.set_cookie(
+                'jwt', access_token, 
+                httponly=True,  # No accesible desde JavaScript
+                secure=True,  # Solo en HTTPS
+                samesite='Strict',  # Impide el envío en solicitudes cruzadas
+                path='/',  # Hacer la cookie accesible en todo el dominio
+            )
+            return response
+        else:
+            return Response({"detail": "Invalid credentials"}, status=400)
 
 class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -27,9 +49,9 @@ class CreateTutorView(generics.CreateAPIView):
     def perform_create(self, serializer):
         serializer.save()
     
-class CustomTokenObtainPairView(TokenObtainPairView):
+""" class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
-    
+     """
     
     
     
