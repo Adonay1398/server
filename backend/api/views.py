@@ -26,7 +26,7 @@ class LoginView(APIView):
                 'jwt', access_token, 
                 httponly=True,  # No accesible desde JavaScript
                 #secure=True,  # Solo en HTTPS
-                samesite='Strict',  # Impide el envío en solicitudes cruzadas
+                samesite=None,  # Impide el envío en solicitudes cruzadas
                 path='/',  # Hacer la cookie accesible en todo el dominio
             )
             return response
