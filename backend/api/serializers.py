@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User,Group
 from .models import * # ScoreConstructo, Constructo, Indicador, IndicadorConstructo, ScoreIndicador,Carrera,Profile
-
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 
 #Serializadores para los modelos de la base de datos
