@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User,Group
 from .models import * # ScoreConstructo, Constructo, Indicador, IndicadorConstructo, ScoreIndicador,Carrera,Profile
+from django.contrib.auth import authenticate
+from django.utils.translation import gettext_lazy as _
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
 #Serializadores para los modelos de la base de datos
@@ -9,6 +12,23 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email']
         
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    username_field = 'email'  # Especifica que el campo de autenticación es 'email'
+
+    def validate(self, attrs):
+        # Sobrescribimos el método validate para usar el email
+        self.user = authenticate(
+            username=attrs.get('email'),
+            password=attrs.get('password')
+        )
+
+        if self.user is None or not self.user.is_active:
+            raise serializers.ValidationError(_('No se pudo autenticar con las credenciales proporcionadas.'))
+
+        return super().validate(attrs)
+
+
+
 class CarreraSerializer(serializers.ModelSerializer):
     class Meta:
         model = Carrera
@@ -86,7 +106,7 @@ class CuestionarioDetailSerializer(serializers.ModelSerializer):
         fields = ['cve_cuestionario', 'nombre_corto', 'nombre_largo', 'observaciones', 'preguntas']
         
 
-""" 
+
 class ProfileSerializer(serializers.ModelSerializer):
     
     user = UserSerializer()
@@ -95,7 +115,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ['id','user','carrera','nombre']
- """
+
 
 class ConstructoSerializer(serializers.ModelSerializer):
     class Meta:

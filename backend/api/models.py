@@ -1,25 +1,18 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
-from django.conf import settings
+from django.contrib.auth.models import User
 
 
 
-class CustomUser(AbstractUser):
-    #carrera = models.ForeignKey('Carrera', on_delete=models.SET_NULL, null=True)
-    fecha_nacimiento = models.DateField(null=True, blank=True)
-    cve_carrera = models.ForeignKey('Carrera', on_delete=models.SET_NULL, null=True)
-    def __str__(self):
-        return self.username
 
 
-""" class Profile(models.Model):
+class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     nombre = models.CharField(max_length=255)
     correo_alternativo = models.EmailField()
     carrera = models.ForeignKey('Carrera', on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
-        return self.nombre """
+        return self.nombre
 
 
 
@@ -120,7 +113,7 @@ class Respuesta(models.Model):
     cve_resp = models.AutoField(primary_key=True)
     pregunta = models.ForeignKey(Pregunta, on_delete=models.CASCADE)
     cve_aplic = models.ForeignKey(DatosAplicacion, on_delete=models.CASCADE)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     valor = models.TextField()
 
     def __str__(self):
@@ -129,7 +122,7 @@ class Respuesta(models.Model):
 class ScoreAplicacion(models.Model):
     cve_score = models.AutoField(primary_key=True)
     cve_aplic = models.ForeignKey(DatosAplicacion, on_delete=models.CASCADE)
-    user = models.ManyToManyField(settings.AUTH_USER_MODEL)
+    user = models.ManyToManyField(User)
     total = models.FloatField()
 
     def __str__(self):
@@ -138,7 +131,7 @@ class ScoreAplicacion(models.Model):
 class ScoreConstructo(models.Model):
     cve_scoreConstructo = models.AutoField(primary_key=True)
     aplicacion = models.ForeignKey(DatosAplicacion, on_delete=models.CASCADE)
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL , on_delete=models.CASCADE)
+    usuario = models.ForeignKey(User , on_delete=models.CASCADE)
     constructo = models.ForeignKey(Constructo, on_delete=models.CASCADE)
     score = models.IntegerField()
 
@@ -161,7 +154,7 @@ class IndicadorConstructo(models.Model):
 class ScoreIndicador(models.Model):
     cve_ScoreIndicador = models.AutoField(primary_key=True)
     aplicacion = models.ForeignKey(DatosAplicacion, on_delete=models.CASCADE)
-    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
     indicador = models.ForeignKey(Indicador, on_delete=models.CASCADE)
     score = models.IntegerField()
 
@@ -183,7 +176,7 @@ class RetroChatGPT(models.Model):
 class Reporte(models.Model):
     cve_reporte = models.AutoField(primary_key=True)
     cve_aplic = models.ForeignKey(DatosAplicacion, on_delete=models.CASCADE)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     total = models.FloatField()
     fecha = models.DateField()
     hora = models.TimeField()
