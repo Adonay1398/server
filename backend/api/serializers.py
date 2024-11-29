@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User,Group
 from .models import * # ScoreConstructo, Constructo, Indicador, IndicadorConstructo, ScoreIndicador,Carrera,Profile
 
-User = get_user_model()
+
 
 #Serializadores para los modelos de la base de datos
 class UserSerializer(serializers.ModelSerializer):
@@ -10,9 +10,9 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email']    
         
-User = get_user_model()
 
-class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+
+""" class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         email = attrs.get("email")
         password = attrs.get("password")
@@ -37,7 +37,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['email'] = user.email  # Agrega el email al token si lo deseas
         return token
 
-
+ """
 class CarreraSerializer(serializers.ModelSerializer):
     class Meta:
         model = Carrera
