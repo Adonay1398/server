@@ -33,6 +33,8 @@ urlpatterns = [
     path('user/<int:pk>/related-data/', UserRelatedDataView.as_view(), name='user-related-data'),
     path ('cuestionario/int:pk /', CuestionarioDetailView.as_view(), name='cuestionario-detail'),
     path('cuestionario/', CuestionarioListView.as_view(), name='cuestionario-list'),
+    path('cuestionario/<int:pk>/preguntas/', PreguntasPorCuestionarioView.as_view(), name='preguntas-por-cuestionario'),
+
 ]
 
 

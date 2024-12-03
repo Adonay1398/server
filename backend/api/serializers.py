@@ -180,3 +180,9 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
         user.groups.add(tutores_group)
 
         return user
+
+
+class PreguntaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Pregunta
+        fields = ['cve_pregunta', 'texto_pregunta', 'cuestionario', 'cve_const1', 'cve_const2', 'cve_const3', 'cve_const4', 'scorekey']

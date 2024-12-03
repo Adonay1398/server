@@ -172,3 +172,15 @@ class CuestionarioDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CuestionarioSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = 'pk'
+
+class PreguntasPorCuestionarioView(generics.ListAPIView):
+    """
+    get:
+    Return a list of all the questions associated with a specific questionnaire.
+    """
+    serializer_class = PreguntaSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        cuestionario_pk = self.kwargs['pk']
+        return Pregunta.objects.filter(cuestionario__pk=cuestionario_pk)
