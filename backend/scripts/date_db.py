@@ -1,72 +1,85 @@
-from api.models import Indicador, Constructo, IndicadorConstructo
+import random
+from faker import Faker
+from django.contrib.auth import get_user_model
+from api.models import DatosAplicacion, Instituto, Departamento, Carrera, Cuestionario, Pregunta, Respuesta, ScoreConstructo, ScoreIndicador, Constructo, Indicador
 
-def clean_duplicates():
-    descriptions = Constructo.objects.values_list('descripcion', flat=True)
-    description_counts = {}
-    
-    for desc in descriptions:
-        if desc in description_counts:
-            description_counts[desc] += 1
-        else:
-            description_counts[desc] = 1
+fake = Faker()
 
-    duplicates = [desc for desc, count in description_counts.items() if count > 1]
+def create_fake_users():
+    User = get_user_model()
 
-    for desc in duplicates:
-        constructos = Constructo.objects.filter(descripcion=desc)
-        primary_constructo = constructos.first()  # Mantener el primer objeto
-        for duplicate in constructos[1:]:
-            # Aquí puedes manejar la consolidación de datos si es necesario
-            duplicate.delete()
+    # Obtener o crear el instituto
+    instituto, created = Instituto.objects.get_or_create(
+        nombre_completo="Instituto Tecnológico de Mérida",
+        defaults={"tipo": "federal", "ruta": "merida"}
+    )
 
-def create_test_data():
-    # Limpiar duplicados antes de crear datos de prueba
-    clean_duplicates()
+    # Obtener o crear el departamento
+    departamento, created = Departamento.objects.get_or_create(
+        nombre="Sistemas Computacionales",
+        defaults={"jefe": fake.name(), "plan_estudio": "Plan de Estudios 1"}
+    )
 
-    # Crear constructos si no existen
-    constructos = [
-        "Madurez", "Responsabilidad", "Empatía", "Respeto", "Compasión", "Tolerancia",
-        "Valoración", "Discreción", "Adaptabilidad", "Altruismo", "Humildad",
-        "Habilidades interpersonales", "Manejo de grupo", "Orientación a la solución",
-        "Compromiso", "Integridad", "Credibilidad", "Proactividad", "Planificación",
-        "Aptitudes organizativas", "Flexibilidad", "Observación", "Resiliencia",
-        "Autenticidad", "Optimismo", "Curiosidad", "Manejo de afectividad",
-        "Mentalidad de crecimiento", "Interés", "Promover desarrollo autónomo",
-        "Habilidades de pensamiento reflexivo"
-    ]
+    # Obtener o crear la carrera
+    carrera, created = Carrera.objects.get_or_create(
+        nombre="Ingeniería en Sistemas Computacionales",
+        defaults={"departamento": departamento, "instituto": instituto}
+    )
 
-    constructo_objects = {}
-    for name in constructos:
-        constructo, created = Constructo.objects.get_or_create(descripcion=name, defaults={'signo': '+', 'acronimo': name[:3].upper()})
-        constructo_objects[name] = constructo
+    # Obtener los cuestionarios
+    cuestionarios = Cuestionario.objects.all()
+    if cuestionarios.count() < 2:
+        print("Se requieren al menos 2 cuestionarios en la base de datos.")
+        return
 
-    # Crear indicadores y asociar constructos
-    indicadores = {
-        "Competencias de interacción social": [
-            "Madurez", "Responsabilidad", "Empatía", "Respeto", "Compasión", "Tolerancia",
-            "Valoración", "Discreción", "Adaptabilidad", "Altruismo", "Humildad",
-            "Habilidades interpersonales", "Manejo de grupo"
-        ],
-        "Competencias de toma de decisiones": [
-            "Orientación a la solución", "Compromiso", "Integridad", "Credibilidad",
-            "Proactividad", "Planificación", "Aptitudes organizativas"
-        ],
-        "Competencias de autorregulación emocional y afectiva": [
-            "Flexibilidad", "Observación", "Resiliencia", "Autenticidad", "Optimismo",
-            "Curiosidad", "Manejo de afectividad", "Mentalidad de crecimiento"
-        ],
-        "Competencias de desarrollo personal y aprendizaje": [
-            "Interés", "Promover desarrollo autónomo", "Habilidades de pensamiento reflexivo"
-        ]
-    }
+    # Crear una única aplicación para todos los usuarios
+    datos_aplicacion = DatosAplicacion.objects.create(
+        fecha=fake.date(),
+        hora=fake.time(),
+        observaciones=fake.text()
+    )
+    datos_aplicacion.cuestionario.set(cuestionarios[:2])  # Asignar los primeros 2 cuestionarios
 
-    for indicador_name, constructo_names in indicadores.items():
-        indicador, created = Indicador.objects.get_or_create(nombre=indicador_name)
-        for constructo_name in constructo_names:
-            IndicadorConstructo.objects.get_or_create(indicador=indicador, constructo=constructo_objects[constructo_name])
+    # Crear 10 usuarios falsos
+    for _ in range(10):
+        user = User.objects.create_user(
+            username=fake.user_name(),
+            password='password',
+            first_name=fake.first_name(),
+            last_name=fake.last_name(),
+            email=fake.email(),
+            fecha_nacimiento=fake.date_of_birth(),
+            carrera=carrera
+        )
 
-    instituto = [
-        {"nombre_completo:": "Instituto Tecnológico de Mérida" },
-    ]
-# Ejecutar la función para crear datos de prueba
-create_test_data()
+        # Asignar respuestas a las preguntas de los cuestionarios
+        for cuestionario in cuestionarios[:2]:  # Solo los primeros 2 cuestionarios
+            for pregunta in Pregunta.objects.filter(cuestionario=cuestionario):
+                Respuesta.objects.create(
+                    pregunta=pregunta,
+                    cve_aplic=datos_aplicacion,
+                    user=user,
+                    valor=str(random.randint(1, 5))
+                )
+
+        # Asignar scores a los constructos e indicadores
+        for constructo in Constructo.objects.all():
+            ScoreConstructo.objects.create(
+                usuario=user,
+                constructo=constructo,
+                aplicacion=datos_aplicacion,  # Asignar la aplicación
+                score=random.randint(0, 100)
+            )
+
+        for indicador in Indicador.objects.all():
+            ScoreIndicador.objects.create(
+                usuario=user,
+                indicador=indicador,
+                aplicacion=datos_aplicacion,  # Asignar la aplicación
+                score=random.randint(0, 100)
+            )
+
+    print("Usuarios falsos creados exitosamente.")
+
+# Ejecutar la función para crear usuarios falsos
+create_fake_users()

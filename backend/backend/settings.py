@@ -17,7 +17,7 @@ import os
 import dj_database_url
 from pathlib import Path
 from datetime import timedelta
-
+#from api.models import CustomUser
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -62,12 +62,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'api',
+
     'rest_framework',
     'rest_framework_simplejwt',
 
     'corsheaders',
 
 ]
+AUTH_USER_MODEL = 'api.CustomUser'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -105,8 +107,8 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
-""" DATABASES = {
+""" 
+DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         "NAME": "dbtutores",
@@ -115,9 +117,9 @@ WSGI_APPLICATION = 'backend.wsgi.application'
         "HOST": "localhost",
         "PORT": "5432",    }
 }
-"""
+ """
 
-
+ 
 
 DATABASES = {
     'default': dj_database_url.config(

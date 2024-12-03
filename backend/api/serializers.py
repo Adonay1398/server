@@ -1,49 +1,10 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User,Group
-from .models import * # ScoreConstructo, Constructo, Indicador, IndicadorConstructo, ScoreIndicador,Carrera,Profile
-from rest_framework.response import Response
-from rest_framework.views import APIView
-
-
-#Serializadores para los modelos de la base de datos
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'email']    
-        
-
-
-""" class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    def validate(self, attrs):
-        email = attrs.get("email")
-        password = attrs.get("password")
-
-        # Busca el usuario por email
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            raise AuthenticationFailed('No user found with this email.')
-
-        # Valida la contraseña
-        if not user.check_password(password):
-            raise AuthenticationFailed('Incorrect password.')
-
-        # Añade el usuario al contexto para seguir el flujo de TokenObtainPairSerializer
-        attrs["username"] = user.username
-        return super().validate(attrs)
-
-    @classmethod
-    def get_token(cls, user):
-        token = super().get_token(user)
-        token['email'] = user.email  # Agrega el email al token si lo deseas
-        return token
-
- """
+from api.models import CustomUser, Carrera, ScoreConstructo, ScoreIndicador, Constructo, Indicador, Instituto, Departamento, DatosAplicacion, Respuesta, Cuestionario, Reporte, Pregunta
+from django.contrib.auth.models import Group
 class CarreraSerializer(serializers.ModelSerializer):
     class Meta:
         model = Carrera
-        fields = ['cve_carrera','nombre','instituto']
-        
+        fields = ['cve_carrera', 'nombre', 'instituto']
 
 class InstitutoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -55,20 +16,50 @@ class DepartamentoSerializer(serializers.ModelSerializer):
         model = Departamento
         fields = ['cve_depto', 'nombre', 'jefe']
 
-class CuestionarioSerializer(serializers.ModelSerializer):
+class ConstructoSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Cuestionario
-        fields = ['cve_cuestionario', 'nombre_corto', 'nombre_largo', 'observaciones']
+        model = Constructo
+        fields = ['cve_const', 'descripcion', 'acronimo']
 
-class PreguntaSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Pregunta
-        fields = ['cve_pregunta', 'texto_pregunta', 'cuestionario', 'cve_const1', 'cve_const2', 'cve_const3', 'cve_const4']
+class ScoreConstructoSerializer(serializers.ModelSerializer):
+    constructo = ConstructoSerializer()
 
-class TipoRespuestaSerializer(serializers.ModelSerializer):
     class Meta:
-        model = TipoRespuesta
-        fields = ['cve_respuesta', 'descripcion']
+        model = ScoreConstructo
+        fields = ['constructo', 'score']
+
+class IndicadorScoreSerializer(serializers.ModelSerializer):
+    nombre = serializers.CharField(source='indicador.nombre')
+    constructos = serializers.SerializerMethodField()
+    usuario = serializers.CharField(source='usuario.get_full_name')
+    class Meta:
+        model = ScoreIndicador
+        fields = ['nombre', 'constructos', 'usuario']
+
+    def get_constructos(self, obj):
+        constructos = ScoreConstructo.objects.filter(constructo__indicadorconstructo__indicador=obj.indicador, usuario=obj.usuario)
+        return ScoreConstructoSerializer(constructos, many=True).data
+
+class UserPersonalInfoSerializer(serializers.ModelSerializer):
+    carrera = serializers.CharField(source='carrera.nombre')
+
+    class Meta:
+        model = CustomUser
+        fields = ['first_name', 'last_name', 'fecha_nacimiento', 'email',  'carrera']
+
+    def get_carrera(self, obj):
+        return obj.carrera.nombre if obj.carrera else None
+
+class UserRelatedDataSerializer(serializers.ModelSerializer):
+    informacion_personal = UserPersonalInfoSerializer(source='*')
+    score = serializers.SerializerMethodField()
+    class Meta:
+        model = CustomUser
+        fields = ['informacion_personal', 'score']
+
+    def get_score(self, obj):
+        indicadores = ScoreIndicador.objects.filter(usuario=obj)
+        return IndicadorScoreSerializer(indicadores, many=True).data
 
 class DatosAplicacionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -78,103 +69,59 @@ class DatosAplicacionSerializer(serializers.ModelSerializer):
 class RespuestaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Respuesta
-        fields = ['id_resp', 'pregunta', 'cve_aplic', 'user', 'valor']
+        fields = ['cve_resp', 'pregunta', 'cve_aplic', 'user', 'valor']
 
-class ScoreAplicacionSerializer(serializers.ModelSerializer):
+class PreguntaSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ScoreAplicacion
-        fields = ['cve_score', 'cve_aplic', 'user', 'total']
+        model = Pregunta
+        fields = ['cve_pregunta', 'texto_pregunta', 'cuestionario', 'cve_const1', 'cve_const2', 'cve_const3', 'cve_const4', 'scorekey']
 
-class RetroChatGPTSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = RetroChatGPT
-        fields = ['cve_retro', 'cve_score', 'texto1', 'texto2', 'texto3']
+class CuestionarioSerializer(serializers.ModelSerializer):
+    preguntas = PreguntaSerializer(many=True, read_only=True, source='pregunta_set')
+    respuestas = RespuestaSerializer(many=True, write_only=True)
 
-class ReporteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Reporte
-        fields = ['cve_reporte', 'cve_aplic', 'user', 'total', 'fecha', 'hora', 'texto', 'observaciones']
-        
-        
-        
-        
-#Serializadores compuestos para multiples consultas
-class CarreraDetailSerializer(serializers.ModelSerializer):
-    departamento = DepartamentoSerializer()
-    instituto = InstitutoSerializer()
-    
-    class Meta:
-        model = Carrera
-        fields = ['cve_carrera','nombre','departamento','instituto']
-
-
-class CuestionarioDetailSerializer(serializers.ModelSerializer):
-    preguntas = PreguntaSerializer(source='pregunta_set', many=True)
-    
     class Meta:
         model = Cuestionario
-        fields = ['cve_cuestionario', 'nombre_corto', 'nombre_largo', 'observaciones', 'preguntas']
-        
+        fields = ['cve_cuestionario', 'nombre_corto', 'preguntas', 'respuestas']
 
+    def create(self, validated_data):
+        respuestas_data = validated_data.pop('respuestas')
+        cuestionario = Cuestionario.objects.create(**validated_data)
+        for respuesta_data in respuestas_data:
+            Respuesta.objects.create(cuestionario=cuestionario, **respuesta_data)
+        return cuestionario
 
-class ProfileSerializer(serializers.ModelSerializer):
-    
-    user = UserSerializer()
-    carrera = CarreraSerializer()
-    
-    class Meta:
-        model = Profile
-        fields = ['id','user','carrera','nombre']
+    def update(self, instance, validated_data):
+        respuestas_data = validated_data.pop('respuestas')
+        instance.nombre_corto = validated_data.get('nombre_corto', instance.nombre_corto)
+        instance.save()
 
+        for respuesta_data in respuestas_data:
+            respuesta_id = respuesta_data.get('cve_resp')
+            if respuesta_id:
+                respuesta = Respuesta.objects.get(cve_resp=respuesta_id, cuestionario=instance)
+                respuesta.valor = respuesta_data.get('valor', respuesta.valor)
+                respuesta.save()
+            else:
+                Respuesta.objects.create(cuestionario=instance, **respuesta_data)
 
-class ConstructoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Constructo
-        fields = ['cve_const','descripcion', 'signo', 'acronimo']
+        return instance
 
-class ScoreConstructoSerializer(serializers.ModelSerializer):
-    usuario = UserSerializer()
-    constructo = ConstructoSerializer()
-
-    class Meta:
-        model = ScoreConstructo
-        fields = ['cve_scoreConstructo','aplicacion', 'usuario', 'constructo', 'score']
-        
-class IndicadorConstructoSerializer(serializers.ModelSerializer):
-    constructo = ConstructoSerializer()
-    score = serializers.SerializerMethodField()
+class ReporteDetailSerializer(serializers.ModelSerializer):
+    aplicacion = DatosAplicacionSerializer()
+    user = UserPersonalInfoSerializer()
 
     class Meta:
-        model = IndicadorConstructo
-        fields = ['constructo', 'score']
+        model = Reporte
+        fields = ['cve_reporte', 'aplicacion', 'user', 'total', 'fecha', 'hora', 'texto', 'observaciones']
 
-    def get_score(self, obj):
-        score_constructo = ScoreConstructo.objects.filter(constructo=obj.constructo).first()
-        return score_constructo.score if score_constructo else None
-
-
-class IndicadorSerializer(serializers.ModelSerializer):
-    constructos = IndicadorConstructoSerializer(source='indicadorconstructo_set', many=True)
-
-    class Meta:
-        model = Indicador
-        fields = ['nombre', 'constructos']
-
-class ScoreIndicadorSerializer(serializers.ModelSerializer):
-    usuario = UserSerializer()
-    indicador = IndicadorSerializer()
-
-    class Meta:
-        model = ScoreIndicador
-        fields = ['cve_ScoreIndicador', 'aplicacion', 'usuario', 'indicador', 'score']
-
-class TutorsRegistrationSerializer(serializers.ModelSerializer):
+class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
     password2 = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'}, label="Confirm password")
 
     class Meta:
-        model = User
-        fields = ['username', 'email', 'password', 'password2']
+        model = CustomUser
+        fields = ['username', 'email', 'password', 'password2', 'groups']
 
     def validate(self, data):
         if data['password'] != data['password2']:
@@ -182,11 +129,50 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        user = User(
-            email=validated_data['email'],
-            username=validated_data['username']
+        group_name = validated_data.pop('groups', [])
+        user = CustomUser.objects.create_user(**validated_data)
+        group = Group.objects.get(name=group_name)
+        user.groups.add(group)
+        return user
+    
+class TutorsRegistrationSerializer(serializers.ModelSerializer):
+    escuela = serializers.CharField(write_only=True, required=True)
+    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    password2 = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'}, label="Confirm password")
+
+    class Meta:
+        model = CustomUser
+        fields = ['username', 'first_name', 'last_name', 'email', 'password', 'password2', 'fecha_nacimiento', 'carrera', 'escuela']
+
+    def validate(self, data):
+        if data['password'] != data['password2']:
+            raise serializers.ValidationError("Passwords do not match.")
+        return data
+
+    def create(self, validated_data):
+        # Extraer los campos necesarios
+        username = validated_data['username']
+        first_name = validated_data['first_name']
+        last_name = validated_data['last_name']
+        email = validated_data['email']
+        fecha_nacimiento = validated_data['fecha_nacimiento']
+        carrera = validated_data['carrera']
+        escuela = validated_data['escuela']
+        password = validated_data['password']
+
+        # Obtener la instancia de Carrera
+        carrera_instance = Carrera.objects.get(pk=carrera.pk)
+
+        # Crear el usuario
+        user = CustomUser(
+            username=username,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            fecha_nacimiento=fecha_nacimiento,
+            carrera=carrera_instance
         )
-        user.set_password(validated_data['password'])
+        user.set_password(password)
         user.save()
 
         # Asignar el usuario al grupo "Tutores"
@@ -194,57 +180,3 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
         user.groups.add(tutores_group)
 
         return user
-    
-class UserRegistrationSerializer(serializers.ModelSerializer):    
-    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
-    password2 = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'}, label="Confirm password")
-
-    class Meta:
-        model = User
-        fields = ['username', 'email', 'password', 'password2','groups']
-
-    def validate(self, data):
-        if data['password'] != data['password2']:
-            raise serializers.ValidationError("Passwords do not match.")
-        return data
-    
-    def create(self, validated_data):
-        group_name = validated_data.pop('group')
-        user = User.objects.create_user(**validated_data)
-        group = Group.objects.get(name=group_name)
-        user.groups.add(group)
-        return user
-    
-
-
-class ReporteDetailSerializer(serializers.ModelSerializer):
-    aplicacion = DatosAplicacionSerializer()
-    user = UserSerializer()
-    
-    class Meta:
-        model = Reporte
-        fields = ['cve_reporte', 'aplicacion', 'user', 'total', 'fecha', 'hora', 'texto', 'observaciones']
-        
-
-class UserRelatedDataSerializer(serializers.ModelSerializer):
-    score_constructos = ScoreConstructoSerializer(many=True, source='scoreconstructo_set')
-    score_indicadores = ScoreIndicadorSerializer(many=True, source='scoreindicador_set')
-    profile = ProfileSerializer()
-
-    class Meta:
-        model = User
-        fields = ['id','username', 'email', 'score_constructos', 'score_indicadores']
-        
-
-from rest_framework_simplejwt.tokens import UntypedToken
-from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-
-class TokenValidationSerializer(serializers.Serializer):
-    token = serializers.CharField()
-
-    def validate_token(self, value):
-        try:
-            UntypedToken(value)
-        except (InvalidToken, TokenError) as e:
-            raise serializers.ValidationError("Token inválido o expirado.")
-        return value
