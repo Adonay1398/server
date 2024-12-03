@@ -1,15 +1,11 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
+from datetime import date
+from django.conf import settings
+from django.contrib.postgres.fields import ArrayField
+""" from django.contrib.auth import get_user_model
 
-class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    nombre = models.CharField(max_length=255)
-    correo_alternativo = models.EmailField()
-    carrera = models.ForeignKey('Carrera', on_delete=models.SET_NULL, null=True)
-
-    def __str__(self):
-        return self.nombre
-
+User = get_user_model() """
 
 
 class Instituto(models.Model):
@@ -17,7 +13,7 @@ class Instituto(models.Model):
     RURAL = 'rural'
     ESTATAL = 'estatal'
 
-    TIPO_INSTITUTO_CHOICES = [
+    TIPO_INSTITUTO_CHOICES = [ 
         (FEDERAL, 'Federal'),
         (RURAL, 'Rural'),
         (ESTATAL, 'Estatal'),
@@ -36,7 +32,8 @@ class Departamento(models.Model):
     cve_depto = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=255)
     jefe = models.CharField(max_length=255)
-
+    plan_estudio = models.CharField(max_length=255, blank=True, null=True)  
+    
     def __str__(self):
         return self.nombre
 
@@ -49,7 +46,34 @@ class Carrera(models.Model):
 
     def __str__(self):
         return self.nombre
+class CustomUser(AbstractUser):
+    fecha_nacimiento = models.DateField(null=True, blank=True)
+    carrera = models.ForeignKey('Carrera', on_delete=models.SET_NULL, null=True)
 
+    groups = models.ManyToManyField(
+        'auth.Group',
+        related_name='customuser_set',
+        blank=True,
+        help_text='The groups this user belongs to.',
+        verbose_name='groups',
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        related_name='customuser_permissions_set',
+        blank=True,
+        help_text='Specific permissions for this user.',
+        verbose_name='user permissions',
+    )
+
+    @property
+    def edad(self):
+        if self.fecha_nacimiento:
+            today = date.today()
+            return (
+                today.year - self.fecha_nacimiento.year
+                - ((today.month, today.day) < (self.fecha_nacimiento.month, self.fecha_nacimiento.day))
+            )
+        return None
 
 class Cuestionario(models.Model):
     cve_cuestionario = models.AutoField(primary_key=True)
@@ -72,14 +96,19 @@ class Constructo(models.Model):
 
 
 class Pregunta(models.Model):
-    cve_pregunta = models.AutoField(primary_key=True)
+    cve_pregunta = models.TextField(primary_key=True)
     texto_pregunta = models.TextField()
-    cuestionario = models.ForeignKey(Cuestionario, on_delete=models.CASCADE)
+    cuestionario = models.ForeignKey(Cuestionario,related_name='preguntas' ,on_delete=models.CASCADE)
     #cve_respuesta = models.ForeignKey('TipoRespuesta', on_delete=models.CASCADE)
     cve_const1 = models.ForeignKey(Constructo, on_delete=models.SET_NULL, null=True, related_name='const1')
     cve_const2 = models.ForeignKey(Constructo, on_delete=models.SET_NULL, null=True, related_name='const2')
     cve_const3 = models.ForeignKey(Constructo, on_delete=models.SET_NULL, null=True, related_name='const3')
     cve_const4 = models.ForeignKey(Constructo, on_delete=models.SET_NULL, null=True, related_name='const4')
+    scorekey = ArrayField(
+        models.IntegerField(),  # Tipo de dato dentro del arreglo
+        default=list,           # Valor predeterminado, una lista vacía
+        blank=True              # Permite que sea opcional
+    )
     #checar
     def __str__(self):
         return self.texto_pregunta
@@ -109,7 +138,7 @@ class Respuesta(models.Model):
     cve_resp = models.AutoField(primary_key=True)
     pregunta = models.ForeignKey(Pregunta, on_delete=models.CASCADE)
     cve_aplic = models.ForeignKey(DatosAplicacion, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     valor = models.TextField()
 
     def __str__(self):
@@ -118,7 +147,7 @@ class Respuesta(models.Model):
 class ScoreAplicacion(models.Model):
     cve_score = models.AutoField(primary_key=True)
     cve_aplic = models.ForeignKey(DatosAplicacion, on_delete=models.CASCADE)
-    user = models.ManyToManyField(User)
+    user = models.ManyToManyField(CustomUser)
     total = models.FloatField()
 
     def __str__(self):
@@ -127,7 +156,7 @@ class ScoreAplicacion(models.Model):
 class ScoreConstructo(models.Model):
     cve_scoreConstructo = models.AutoField(primary_key=True)
     aplicacion = models.ForeignKey(DatosAplicacion, on_delete=models.CASCADE)
-    usuario = models.ForeignKey(User , on_delete=models.CASCADE)
+    usuario = models.ForeignKey(CustomUser , on_delete=models.CASCADE)
     constructo = models.ForeignKey(Constructo, on_delete=models.CASCADE)
     score = models.IntegerField()
 
@@ -150,9 +179,10 @@ class IndicadorConstructo(models.Model):
 class ScoreIndicador(models.Model):
     cve_ScoreIndicador = models.AutoField(primary_key=True)
     aplicacion = models.ForeignKey(DatosAplicacion, on_delete=models.CASCADE)
-    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    usuario = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     indicador = models.ForeignKey(Indicador, on_delete=models.CASCADE)
     score = models.IntegerField()
+    constructos = models.ManyToManyField(ScoreConstructo, related_name='indicadores', blank=True)
 
     def __str__(self):
         return f"Score Indicador {self.indicador.nombre} - {self.score}"
@@ -172,7 +202,7 @@ class RetroChatGPT(models.Model):
 class Reporte(models.Model):
     cve_reporte = models.AutoField(primary_key=True)
     cve_aplic = models.ForeignKey(DatosAplicacion, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     total = models.FloatField()
     fecha = models.DateField()
     hora = models.TimeField()

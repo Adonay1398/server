@@ -2,8 +2,9 @@ from django.http import JsonResponse
 from rest_framework.response import Response
 from rest_framework import generics,status
 from rest_framework.permissions import AllowAny, IsAuthenticated, DjangoModelPermissions,IsAdminUser
-from django.contrib.auth.models import User
-from .models import ScoreConstructo, Indicador, Constructo, Profile
+#from django.contrib.auth.models import CustomUser
+
+from .models import *  #ScoreConstructo, Indicador, Constructo, CustomUser
 from .serializers import * #UserSerializer, ScoreConstructoSerializer, IndicadorSerializer, ConstructoSerializer, ScoreIndicadorSerializer,ScoreIndicador
 from .permissions import IsOwner
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -12,7 +13,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.views import APIView
 
 
-class ValidateTokenView(APIView):
+""" class ValidateTokenView(APIView):
     def post(self, request):
         serializer = TokenValidationSerializer(data=request.data)
         if serializer.is_valid():
@@ -42,10 +43,10 @@ class LoginView(APIView):
             )
             return response
         else:
-            return Response({"detail": "Invalid credentials"}, status=400)
+            return Response({"detail": "Invalid credentials"}, status=400) """
 
 class CreateUserView(generics.CreateAPIView):
-    queryset = User.objects.all()
+    queryset = CustomUser.objects.all()
     serializer_class = UserRegistrationSerializer
     permission_classes = [IsAuthenticated, DjangoModelPermissions]
     
@@ -53,7 +54,7 @@ class CreateUserView(generics.CreateAPIView):
         serializer.save()
     
 class CreateTutorView(generics.CreateAPIView):
-    queryset = User.objects.all()
+    queryset = CustomUser.objects.all()
     serializer_class = TutorsRegistrationSerializer
     permission_classes = [AllowAny]
     
@@ -67,17 +68,17 @@ class CreateTutorView(generics.CreateAPIView):
     
     
     
-class ProfileListView(generics.ListAPIView):
-    queryset = Profile.objects.all().select_related('user','carrera')
+""" class ProfileListView(generics.ListAPIView):
+    queryset = CustomUser.objects.all().select_related('user','carrera')
     serializer_class = ProfileSerializer
     permission_classes = [IsAuthenticated, DjangoModelPermissions,IsOwner]
     
     
 class ProfileDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Profile.objects.all().select_related('user','carrera')
+    queryset = CustomUser.objects.all().select_related('user','carrera')
     serializer_class = ProfileSerializer
     permission_classes = [IsAuthenticated, DjangoModelPermissions,IsOwner]
-    lookup_field = 'pk'
+    lookup_field = 'pk' """
     
 class UserScoreConstructoListView(generics.ListAPIView):
     serializer_class = ScoreConstructoSerializer
@@ -87,7 +88,7 @@ class UserScoreConstructoListView(generics.ListAPIView):
         return ScoreConstructo.objects.filter(usuario__id=user_id)
 
 class UserScoreIndicadorListView(generics.ListAPIView):
-    serializer_class = ScoreIndicadorSerializer
+    serializer_class = IndicadorScoreSerializer
     permission_classes = [IsAuthenticated, DjangoModelPermissions]
     def get_queryset(self):
         user_id = self.kwargs['user_id']
@@ -116,12 +117,12 @@ class ScoreConstructoDetailViews(generics.RetrieveUpdateDestroyAPIView):
 
 class ScoreIndicadorListViews(generics.ListCreateAPIView):
     queryset = ScoreIndicador.objects.all().select_related('usuario','indicador')
-    serializer_class = ScoreIndicadorSerializer
-    permission_classes = [IsAuthenticated, DjangoModelPermissions]
+    serializer_class = IndicadorScoreSerializer
+    permission_classes = [AllowAny] #[IsAuthenticated, DjangoModelPermissions]
 
 class ScoreIndicadorDetailViews(generics.RetrieveUpdateDestroyAPIView):
     queryset = ScoreIndicador.objects.all().select_related('usuario','indicador')
-    serializer_class = ScoreIndicadorSerializer
+    serializer_class = IndicadorScoreSerializer
     permission_classes = [IsAuthenticated, DjangoModelPermissions]
     lookup_field = 'pk' 
 
@@ -136,11 +137,11 @@ class ConstructoDetailViews(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated, DjangoModelPermissions]
 
 
-
+""" 
 class IndicadorListViews(generics.ListCreateAPIView):
-    queryset = Indicador.objects.all().prefetch_related('constructo')
+    queryset = Indicador.objects.all().prefetch_related('constructos')
     serializer_class = IndicadorSerializer
-    permission_classes = [IsAuthenticated, DjangoModelPermissions]
+    permission_classes = [AllowAny]#[IsAuthenticated, DjangoModelPermissions]
 
 
 
@@ -148,15 +149,26 @@ class IndicadorDetailViews(generics.RetrieveUpdateDestroyAPIView):
     queryset = Indicador.objects.all()
     serializer_class = IndicadorSerializer
     permission_classes = [IsAuthenticated, DjangoModelPermissions]
-    
+     """
 
 class UserRelateDataListView(generics.ListCreateAPIView):
-    queryset = User.objects.all()
+    queryset = CustomUser.objects.all()
     serializer_class = UserRelatedDataSerializer
     permission_classes = [IsAuthenticated, DjangoModelPermissions,IsOwner]
 
 class UserRelatedDataView(generics.RetrieveAPIView):
-    queryset = User.objects.all()
+    queryset = CustomUser.objects.all()
     serializer_class = UserRelatedDataSerializer
-    permission_classes = [IsAuthenticated, DjangoModelPermissions,IsOwner]
+    permission_classes = [AllowAny]#[IsAuthenticated, DjangoModelPermissions,IsOwner]
+    lookup_field = 'pk'
+
+class CuestionarioListView(generics.ListCreateAPIView):
+    queryset = Cuestionario.objects.all()
+    serializer_class = CuestionarioSerializer
+    permission_classes = [AllowAny]
+
+class CuestionarioDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Cuestionario.objects.all()
+    serializer_class = CuestionarioSerializer
+    permission_classes = [IsAuthenticated]
     lookup_field = 'pk'
