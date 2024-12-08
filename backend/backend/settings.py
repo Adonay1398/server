@@ -46,8 +46,8 @@ REST_FRAMEWORK = {
     ),
 }
 
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+SIMPLE_JWT = {  
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=180),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
 
@@ -61,7 +61,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'drf_yasg',
     'api',
+
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
@@ -69,6 +71,10 @@ INSTALLED_APPS = [
 ]
 AUTH_USER_MODEL = 'api.CustomUser'
 
+
+# Configuración de archivos multimedia (si es necesario)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -109,13 +115,14 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        "NAME": "dbtutores",
-        "USER": "adonay1398",
-        "PASSWORD": "admin",
-        "HOST": "localhost",
-        "PORT": "5432",    }
-}
- """
+        "NAME": "tutores_DB",
+        "USER": "tutores_DB_admin",
+        "PASSWORD": "uNF3]7v43{pG",
+        "HOST": "18.144.71.9",
+        "PORT": "5432",  
+        }
+} """
+
 
  
 
@@ -161,12 +168,21 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 STATIC_URL = 'static/'
-if not DEBUG:
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'server', 'backend', 'staticfiles'),
+]
+if not DEBUG:
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_collected')
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
