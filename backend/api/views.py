@@ -147,11 +147,11 @@ class StoreResponsesView(APIView):
 # AGREGADOS
 
 # ==========================
-
+""" 
 class GenerateAggregateScoreView(APIView):
-    """
-    Calcular y guardar el promedio general de indicadores para un nivel y referencia específicos.
-    """
+   
+   # Calcular y guardar el promedio general de indicadores para un nivel y referencia específicos.
+   
     def post(self, request, *args, **kwargs):
         nivel = request.data.get('nivel')
         referencia_id = request.data.get('referencia_id')
@@ -207,7 +207,7 @@ class GenerateAggregateScoreView(APIView):
             return Response({"error": "Cuestionario no encontrado."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+ """
 
 class UserRelatedDataView(APIView):
     permission_classes = [IsAuthenticated]
@@ -224,7 +224,7 @@ CAMPO_NIVEL = {
     'departamento': 'departamento_id',
     'instituto': 'instituto_id'
 }
-class GenerarReporteAPIView(APIView):
+""" class GenerarReporteAPIView(APIView):
     def post(self, request, *args, **kwargs):
         # Obtener los datos del cuerpo de la solicitud
         nivel = request.data.get('nivel')
@@ -256,7 +256,7 @@ class GenerarReporteAPIView(APIView):
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-        
+         """
 class ProcesarCuestionariosView(APIView):
     permission_classes = [IsAuthenticated]
 

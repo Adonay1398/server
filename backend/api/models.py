@@ -205,7 +205,19 @@ class RetroChatGPT(models.Model):
         return f"Retroalimentación para Usuario {self.usuario} - Score {self.cve_score}"
 
 
+
+
 class Reporte(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    nivel = models.CharField(max_length=15)
+    referencia_id = models.IntegerField()
+    texto_fortalezas = models.TextField(blank=True, null=True)
+    texto_oportunidades = models.TextField(blank=True, null=True)
+    fecha_generacion = models.DateTimeField()
+    usuario_generador = models.ForeignKey(CustomUser, on_delete=models.CASCADE, blank=True, null=True)
+
+
+""" class Reporte(models.Model):
     NIVEL_CHOICES = [
         ('carrera', 'Carrera'),
         ('departamento', 'Departamento'),
@@ -215,20 +227,19 @@ class Reporte(models.Model):
     ]
 
     nivel = models.CharField(max_length=15, choices=NIVEL_CHOICES)
-    referencia_id = models.IntegerField()  # ID del nivel específico (carrera, departamento, etc.)
-    usuario_generador = models.ForeignKey('CustomUser', on_delete=models.SET_NULL, null=True)
+    grupo = models.CharField(max_length=255)  # Nombre del grupo (carrera, departamento, etc.)
+    promedio_indicadores = models.JSONField()  # Almacena los promedios de los indicadores
+
     #promedio = models.FloatField()  # Promedio general
     texto_fortalezas = models.TextField(blank=True, null=True)
     texto_oportunidades = models.TextField(blank=True, null=True)
-    fecha_generacion = models.DateTimeField(auto_now_add=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        unique_together = ('nivel', 'referencia_id', 'fecha_generacion')
-
+    
     def __str__(self):
         return f"Reporte {self.nivel.capitalize()} - ID: {self.referencia_id} - {self.fecha_generacion}"
 
-
+ """
 
 
 """ class Reporte(models.Model):
@@ -275,7 +286,7 @@ class AggregateIndicatorScore(models.Model):
  """
 from django.contrib.auth.models import Group
 
-class IndicadorPromedio(models.Model):
+""" class IndicadorPromedio(models.Model):
     NIVEL_CHOICES = [
         ('carrera', 'Carrera'),
         ('departamento', 'Departamento'),
@@ -295,3 +306,25 @@ class IndicadorPromedio(models.Model):
 
     def __str__(self):
         return f"{self.nivel} - {self.grupo.name} - {self.indicador}: {self.promedio}"
+     """
+    
+    
+""" class GrupoJerarquico(models.Model):
+    grupo = models.OneToOneField(Group, on_delete=models.CASCADE, related_name="jerarquia")
+    nivel = models.CharField(
+        max_length=50,
+        choices=[
+            ("nacional", "Nivel Nacional"),
+            ("region", "Nivel Región"),
+            ("institucion", "Nivel Institución"),
+            ("departamento", "Nivel Departamento"),
+            ("plan_estudios", "Nivel Plan de Estudios"),
+            ("tutores", "Nivel Tutores"),
+        ]
+    )
+    parent_group = models.ForeignKey(
+        Group, on_delete=models.SET_NULL, null=True, blank=True, related_name="subgrupos"
+    )
+
+    def __str__(self):
+        return f"{self.grupo.name} ({self.nivel})" """

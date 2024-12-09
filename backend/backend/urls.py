@@ -56,9 +56,9 @@ urlpatterns = [
     path('store-responses/', StoreResponsesView.as_view(), name='store-responses'),
 
     # Aggregates and Group Scores
-    path('api/aggregate-scores/', GenerateAggregateScoreView.as_view(), name='aggregate-scores'),
+    #path('api/aggregate-scores/', GenerateAggregateScoreView.as_view(), name='aggregate-scores'),
     # Reporte
-    path('api/generar-reporte/', GenerarReporteAPIView.as_view(), name='generar-reporte'),
+    #path('api/generar-reporte/', GenerarReporteAPIView.as_view(), name='generar-reporte'),
     path('procesar-cuestionarios/', ProcesarCuestionariosView.as_view(), name='procesar_cuestionarios'),
     path('calcular-datos-tutor/', CalcularDatosTutorView.as_view(), name='calcular_datos_tutor'),
     path('calcular-datos-jerarquicos/', CalcularDatosJerarquicosView.as_view(), name='calcular_datos_jerarquicos'),
