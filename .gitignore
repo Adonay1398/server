@@ -1,0 +1,20 @@
+# Ignorar archivos de configuración sensibles
+.env
+
+# Ignorar el entorno virtual
+venv/
+ENV/
+env/
+
+# Ignorar archivos compilados de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignorar archivos de sistema
+*.swp
+.DS_Store
+
+# Ignorar carpetas de dependencias
+node_modules/

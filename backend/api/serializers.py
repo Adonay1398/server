@@ -134,7 +134,6 @@ class UserPersonalInfoSerializer(serializers.ModelSerializer):
         return obj.carrera.nombre if obj.carrera else None
 
 
-
 class UserRelatedDataSerializer(serializers.ModelSerializer):
     """
     Serializador para mostrar datos relacionados al usuario:
@@ -151,34 +150,34 @@ class UserRelatedDataSerializer(serializers.ModelSerializer):
         fields = ['informacion_personal', 'indicador', 'retrochatgpt']
 
     def get_indicador(self, obj):
-            """
-            Retorna los indicadores con sus puntajes para el usuario dado.
-            """
-            request = self.context.get('request')
-            if not request or not request.user or not request.user.is_authenticated:
-                raise serializers.ValidationError("Usuario no autenticado.")
+        """
+        Retorna los indicadores con sus puntajes para el usuario dado.
+        """
+        request = self.context.get('request')
+        if not request or not request.user or not request.user.is_authenticated:
+            raise serializers.ValidationError("Usuario no autenticado.")
 
-            user = request.user
-            indicadores = ScoreIndicador.objects.filter(usuario=user)
-            return IndicadorScoreSerializer(indicadores, many=True).data
+        user = request.user
+        indicadores = ScoreIndicador.objects.filter(usuario=user)
+        return IndicadorScoreSerializer(indicadores, many=True).data
 
     def get_retrochatgpt(self, obj):
-            """
-            Retorna la retroalimentación de RetroChatGPT para el usuario dado.
-            """
-            request = self.context.get('request')
-            if not request or not request.user or not request.user.is_authenticated:
-                raise serializers.ValidationError("Usuario no autenticado.")
+        """
+        Retorna la retroalimentación de RetroChatGPT para el usuario dado.
+        """
+        request = self.context.get('request')
+        if not request or not request.user or not request.user.is_authenticated:
+            raise serializers.ValidationError("Usuario no autenticado.")
 
-            user = request.user
-            retros = RetroChatGPT.objects.filter(cve_score__user=user)
-            return [
-                {
-                    "texto1": retro.texto1.url if retro.texto1 else None,
-                    "texto2": retro.texto2.url if retro.texto2 else None,
-                }
-                for retro in retros
-            ]
+        user = request.user
+        retros = RetroChatGPT.objects.filter(usuario=user)
+        return [
+            {
+                "texto1": retro.texto1 if retro.texto1 else None,
+                "texto2": retro.texto2 if retro.texto2 else None,
+            }
+            for retro in retros
+        ]
 
 class DatosAplicacionSerializer(serializers.ModelSerializer):
     """
