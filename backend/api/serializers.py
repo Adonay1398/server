@@ -339,7 +339,7 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
         carrera_nombre = validated_data.pop('carrera')
 
         # Obtener los objetos relacionados por nombre
-        instituto = Instituto.objects.get(nombre=instituto_nombre)
+        instituto = Instituto.objects.get(nombre_completo=instituto_nombre)
         carrera = Carrera.objects.get(nombre=carrera_nombre)
 
         # Crear el usuario
