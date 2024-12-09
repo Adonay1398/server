@@ -4,7 +4,7 @@ from django.contrib.auth.models import Group
 from rest_framework import serializers
 
 from api.models import (
-    CustomUser, Carrera,  ScoreConstructo, ScoreIndicador, Constructo, Indicador,
+    CustomUser, Carrera, RetroChatGPT,  ScoreConstructo, ScoreIndicador, Constructo, Indicador,
     Instituto, Departamento, DatosAplicacion, Respuesta, Cuestionario, Pregunta,  #Reporte, 
 )
 
@@ -300,15 +300,13 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user.groups.add(group)
         return user
 
-
 class TutorsRegistrationSerializer(serializers.ModelSerializer):
     """
     Serializador para el registro de tutores.
-    Requiere ID de instituto y carrera, así como contraseñas coincidentes.
-    Asigna el grupo "Tutores" al usuario creado.
+    Recibe nombres de instituto y carrera en lugar de sus IDs.
     """
-    instituto = serializers.IntegerField(write_only=True, required=True)  
-    carrera = serializers.IntegerField(write_only=True, required=True)  
+    instituto = serializers.CharField(write_only=True, required=True)  # Ahora recibe un nombre
+    carrera = serializers.CharField(write_only=True, required=True)  # Ahora recibe un nombre
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
     password2 = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'}, label="Confirm password")
 
@@ -320,29 +318,32 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, data):
-        """Valida contraseñas y existencia de instituto y carrera."""
+        """Valida contraseñas y existencia de instituto y carrera por nombre."""
         if data['password'] != data['password2']:
             raise serializers.ValidationError({"password": "Las contraseñas no coinciden."})
 
-        instituto_id = data.get('instituto')
-        carrera_id = data.get('carrera')
+        # Validar existencia de instituto y carrera por nombre
+        instituto_nombre = data.get('instituto')
+        carrera_nombre = data.get('carrera')
 
-        if not Instituto.objects.filter(pk=instituto_id).exists():
+        if not Instituto.objects.filter(nombre=instituto_nombre).exists():
             raise serializers.ValidationError({"instituto": "El instituto especificado no existe."})
 
-        if not Carrera.objects.filter(pk=carrera_id).exists():
+        if not Carrera.objects.filter(nombre=carrera_nombre).exists():
             raise serializers.ValidationError({"carrera": "La carrera especificada no existe."})
 
         return data
 
     def create(self, validated_data):
-        """Crea el usuario tutor y lo asocia a la carrera e instituto."""
-        instituto_id = validated_data.pop('instituto')
-        carrera_id = validated_data.pop('carrera')
+        """Crea el usuario tutor y lo asocia a la carrera e instituto por nombre."""
+        instituto_nombre = validated_data.pop('instituto')
+        carrera_nombre = validated_data.pop('carrera')
 
-        instituto = Instituto.objects.get(pk=instituto_id)
-        carrera = Carrera.objects.get(pk=carrera_id)
+        # Obtener los objetos relacionados por nombre
+        instituto = Instituto.objects.get(nombre=instituto_nombre)
+        carrera = Carrera.objects.get(nombre=carrera_nombre)
 
+        # Crear el usuario
         user = CustomUser(
             username=validated_data['username'],
             first_name=validated_data['first_name'],
@@ -354,11 +355,11 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
         user.set_password(validated_data['password'])
         user.save()
 
+        # Asignar al grupo "Tutores"
         tutores_group, _ = Group.objects.get_or_create(name='Tutores')
         user.groups.add(tutores_group)
 
         return user
-
 
 class IndicadorPromedioSerializer(serializers.ModelSerializer):
     """

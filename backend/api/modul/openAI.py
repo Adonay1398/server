@@ -3,11 +3,12 @@ from typing import Literal
 from langchain_community.chat_models import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
+from dotenv import load_dotenv
+import os
 
-
+load_dotenv()
 model = ChatOpenAI(model="gpt-4")
 parser = StrOutputParser()
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 
 def prompt() -> ChatPromptTemplate:
     system_template = "Actúa como si fueras un analista de datos en una empresa de consultoría. Necesitan que analices los siguientes datos psicológicos y generes un informe con base a ellos."
@@ -49,11 +50,11 @@ def make_analysis(data: dict, report: Literal['reporte', 'retroalimentación'], 
     chain = promptTemplate | model | parser
 
     resultado = chain.invoke({
-        "tipo_de_reporte": tipo_de_reporte[1],
+        "tipo_de_reporte": tipo_de_reporte[report],
         "lector": nivel_de_analisis[0],
         "nivel_de_analisis": nivel_de_analisis[0],
         "detalles_especificos": detalles_especificos[0],
-        "objetivo_informe": objetivos_informe[1],
+        "objetivo_informe": objetivos_informe[0],
         "datos": data
     })
 

@@ -1,4 +1,4 @@
-from langchain_core.prompts import ChatPromptTemplate
+from  .prompts import ChatPromptTemplate
 
 system_template="Actua como si fueras un analista de datos en una empresa de consultoría. Necesitan que analices el sisguientes datos psicológicos y generes un informe con base a ellos."
 

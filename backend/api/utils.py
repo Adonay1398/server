@@ -1,9 +1,109 @@
-# app/utils.py
 
-from .models import IndicadorPromedio
+from .models import Carrera, CustomUser, Departamento #, IndicadorPromedio, ScoreIndicador
 from django.contrib.auth.models import Group
-from .models import CustomUser, Carrera, Departamento, ScoreIndicador
 
+def calculate_construct_score(responses, reverse_items=None, weights=None, method="sum", normalize=False):
+    """
+    Calcula el score de un constructo en un MIQ.
+
+    Args:
+        responses (list): Lista de respuestas numéricas correspondientes a los ítems del constructo.
+        reverse_items (list): Índices de los ítems que necesitan ser revertidos. (opcional)
+                              Ejemplo: [0, 2] si los ítems en las posiciones 0 y 2 son negativos.
+        weights (list): Pesos para cada ítem, si se requiere ponderación. (opcional)
+                        Ejemplo: [0.5, 1, 0.8]
+        method (str): Método para calcular el score ("sum", "average", "weighted"). 
+                      - "sum": Suma de las respuestas.
+                      - "average": Promedio de las respuestas.
+                      - "weighted": Suma ponderada de las respuestas (requiere `weights`).
+        normalize (bool): Si se debe normalizar el score en un rango de 0 a 1.
+
+    Returns:
+        float: Score calculado del constructo.
+    """
+    # Paso 1: Reversión de ítems
+    if reverse_items:
+        max_scale = max(responses)  # Asumimos que la escala es uniforme
+        for index in reverse_items:
+            responses[index] = (max_scale + 1) - responses[index]  # Reversión según fórmula: 6 - valor original
+
+    # Paso 2: Calcular el score
+    if method == "sum":
+        score = sum(responses)
+        max_score = len(responses) * max(responses)  # Puntaje máximo posible
+        score = score / max_score
+    elif method == "average":
+        score = sum(responses) / len(responses)
+    elif method == "weighted":
+        if not weights or len(weights) != len(responses):
+            raise ValueError("Se deben proporcionar pesos válidos para el cálculo ponderado.")
+        score = sum(w * r for w, r in zip(weights, responses))
+    else:
+        raise ValueError("Método no válido. Usa 'sum', 'average' o 'weighted'.")
+
+
+
+    return score*100 
+
+
+
+""" def calcular_promedio_carrera(carrera, cuestionario):
+    usuarios = CustomUser.objects.filter(carrera=carrera)
+    scores_indicadores = ScoreIndicador.objects.filter(
+        usuario__in=usuarios,
+        indicador__constructos__preguntas_const1__cuestionario=cuestionario
+    ).distinct()
+
+    total_score = sum(si.score for si in scores_indicadores)
+    count = scores_indicadores.count()
+    average_score = total_score / count if count > 0 else 0
+
+    AggregateIndicatorScore.objects.update_or_create(
+        nivel='carrera',
+        carrera=carrera,
+        cuestionario=cuestionario,
+        defaults={'average_score': average_score}
+    )
+    print(f"Promedio guardado para la carrera {carrera.id}: {average_score}")
+
+
+def calcular_promedio_departamento(departamento, cuestionario):
+    usuarios = CustomUser.objects.filter(carrera__departamento=departamento)
+    scores_indicadores = ScoreIndicador.objects.filter(
+        usuario__in=usuarios,
+        indicador__constructos__preguntas_const1__cuestionario=cuestionario
+    ).distinct()
+
+    total_score = sum(si.score for si in scores_indicadores)
+    count = scores_indicadores.count()
+    average_score = total_score / count if count > 0 else 0
+
+    AggregateIndicatorScore.objects.update_or_create(
+        nivel='departamento',
+        departamento=departamento,
+        cuestionario=cuestionario,
+        defaults={'average_score': average_score}
+    )
+    print(f"Promedio guardado para el departamento {departamento.id}: {average_score}")
+
+def calcular_promedio_instituto(instituto, cuestionario):
+    usuarios = CustomUser.objects.filter(carrera__departamento__instituto=instituto)
+    scores_indicadores = ScoreIndicador.objects.filter(
+        usuario__in=usuarios,
+        indicador__constructos__preguntas_const1__cuestionario=cuestionario
+    ).distinct()
+
+    total_score = sum(si.score for si in scores_indicadores)
+    count = scores_indicadores.count()
+    average_score = total_score / count if count > 0 else 0
+
+    AggregateIndicatorScore.objects.update_or_create(
+        nivel='instituto',
+        instituto=instituto,
+        cuestionario=cuestionario,
+        defaults={'average_score': average_score}
+    )
+    print(f"Promedio guardado para el instituto {instituto.id}: {average_score}") """
 def calcular_promedios_indicadores(scores):
     """
     Calcula el promedio de los indicadores basado en los scores.
