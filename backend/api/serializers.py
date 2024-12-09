@@ -325,7 +325,7 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
         instituto_nombre = data.get('instituto')
         carrera_nombre = data.get('carrera')
 
-        if not Instituto.objects.filter(nombre=instituto_nombre).exists():
+        if not Instituto.objects.filter(nombre_completo=instituto_nombre).exists():
             raise serializers.ValidationError({"instituto": "El instituto especificado no existe."})
 
         if not Carrera.objects.filter(nombre=carrera_nombre).exists():
