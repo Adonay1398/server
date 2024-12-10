@@ -13,7 +13,7 @@ def create_groups_and_permissions():
     coordinador_tutorias_region = Group.objects.create(name='Coordinador  de Tutorias a Nivel Region')
     coordinador_tutorias_intitucion = Group.objects.create(name='Coordinador de Tutorias por Institucion')
     coordinador_departamento= Group.objects.create(name='Coordinador de Tutorias por Departamento')
-    coordinador_plan_estudios = Group.objects.create(name='Coordinador de Plan de Estudios')
+    coordinador_plan_estudios = Group.objects.create(name='Coordinador de Plan de Estudios')    
     Tutores = Group.objects.create(name='Tutores')
 
     # Definir permisos

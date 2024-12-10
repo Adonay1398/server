@@ -58,6 +58,9 @@ SIMPLE_JWT = {
 
 INSTALLED_APPS = [
     'django.contrib.admin',
+
+        
+
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -113,14 +116,14 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-""" 
-DATABASES = {
+
+""" DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        "NAME": "tutores_DB",
-        "USER": "tutores_DB_admin",
-        "PASSWORD": "uNF3]7v43{pG",
-        "HOST": "18.144.71.9",
+        "NAME": "tutores_db",
+        "USER": "adonay1398",
+        "PASSWORD": "admin",
+        "HOST": "localhost",
         "PORT": "5432",  
         }
 } """
@@ -130,10 +133,11 @@ DATABASES = {
 
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL','postgresql://dbtest_ik13_user:xPubywJhSpylUnwt1WE0l4rOWGeWLj2q@dpg-csnvttqj1k6c73badr3g-a.oregon-postgres.render.com/dbtest_ik13'),
+        default=os.getenv('DATABASE_URL','postgresql://dbtutores_user:apdI1sFwvuBJZstb7g2A02J5j0TCcoMs@dpg-ctc4f49u0jms73cqloo0-a.oregon-postgres.render.com/dbtutores'),
         conn_max_age=600
     )
 }
+
 
 
 

@@ -1,8 +1,9 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group
 from datetime import date
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
+from django.utils import timezone
 
 class Instituto(models.Model):
     FEDERAL = 'federal'
@@ -34,7 +35,6 @@ class Departamento(models.Model):
 
 
 class Carrera(models.Model):
-
     cve_carrera = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=255, unique=True)  # Unique career names
     departamento = models.ForeignKey(Departamento, on_delete=models.CASCADE)
@@ -202,9 +202,7 @@ class RetroChatGPT(models.Model):
     pdf_file = models.FileField(upload_to='pdf_files/', blank=True, null=True)  # Archivo PDF generado
 
     def __str__(self):
-        return f"Retroalimentación para Usuario {self.usuario} - Score {self.cve_score}"
-
-
+        return f"Retroalimentación para Usuario {self.usuario} - Score {self.cve_retro}"
 
 
 class Reporte(models.Model):
@@ -213,80 +211,15 @@ class Reporte(models.Model):
     referencia_id = models.IntegerField()
     texto_fortalezas = models.TextField(blank=True, null=True)
     texto_oportunidades = models.TextField(blank=True, null=True)
-    fecha_generacion = models.DateTimeField()
+    fecha_generacion = models.DateTimeField(default=timezone.now)
+    observaciones = models.TextField(blank=True, null=True)  # Asegúrate de que esta línea esté presente
     usuario_generador = models.ForeignKey(CustomUser, on_delete=models.CASCADE, blank=True, null=True)
 
-
-""" class Reporte(models.Model):
-    NIVEL_CHOICES = [
-        ('carrera', 'Carrera'),
-        ('departamento', 'Departamento'),
-        ('instituto', 'Instituto'),
-        ('region', 'Región'),
-        ('nacion', 'Nación'),
-    ]
-
-    nivel = models.CharField(max_length=15, choices=NIVEL_CHOICES)
-    grupo = models.CharField(max_length=255)  # Nombre del grupo (carrera, departamento, etc.)
-    promedio_indicadores = models.JSONField()  # Almacena los promedios de los indicadores
-
-    #promedio = models.FloatField()  # Promedio general
-    texto_fortalezas = models.TextField(blank=True, null=True)
-    texto_oportunidades = models.TextField(blank=True, null=True)
-    fecha_creacion = models.DateTimeField(auto_now_add=True)
-
-    
     def __str__(self):
-        return f"Reporte {self.nivel.capitalize()} - ID: {self.referencia_id} - {self.fecha_generacion}"
-
- """
+        return f"Reporte {self.id} - {self.fecha_generacion}"
 
 
-""" class Reporte(models.Model):
-    cve_reporte = models.AutoField(primary_key=True)
-    total = models.FloatField()
-    fecha = models.DateField()
-    hora = models.TimeField()
-    texto = models.CharField(max_length=100)
-    observaciones = models.TextField(blank=True, null=True)
-    cve_aplic = models.ForeignKey('Datosaplicacion', on_delete=models.DO_NOTHING)  # Relación con ApiDatosaplicacion
-    user = models.ForeignKey('Customuser', on_delete=models.DO_NOTHING)  # Relación con ApiCustomuser
-
-    class Meta:
-        managed = False  # Cambiar a True si quieres que Django gestione esta tabla
-        db_table = 'api_reporte'
- """
- 
- 
-"""  
-class AggregateIndicatorScore(models.Model):
-    NIVEL_CHOICES = [   
-        ('carrera', 'Carrera'),
-        ('departamento', 'Departamento'),
-        ('instituto', 'Instituto'),
-    ]
-
-    nivel = models.CharField(max_length=15, choices=NIVEL_CHOICES)
-    carrera = models.ForeignKey(
-        'Carrera', on_delete=models.CASCADE, null=True, blank=True, related_name='aggregate_scores'
-    )
-    departamento = models.ForeignKey(
-        'Departamento', on_delete=models.CASCADE, null=True, blank=True, related_name='aggregate_scores'
-    )
-    instituto = models.ForeignKey(
-        'Instituto', on_delete=models.CASCADE, null=True, blank=True, related_name='aggregate_scores'
-    )
-    fecha = models.DateField(auto_now_add=True)
-    average_score = models.FloatField()
-    cuestionario = models.ForeignKey('Cuestionario', on_delete=models.CASCADE, null=True, blank=True)
-
-    class Meta:
-        db_table = 'aggregate_indicator_score'  # Nuevo nombre si deseas cambiar la tabla
-        unique_together = ('nivel', 'carrera', 'departamento', 'instituto', 'fecha', 'cuestionario')
- """
-from django.contrib.auth.models import Group
-
-""" class IndicadorPromedio(models.Model):
+class IndicadorPromedio(models.Model):
     NIVEL_CHOICES = [
         ('carrera', 'Carrera'),
         ('departamento', 'Departamento'),
@@ -306,10 +239,9 @@ from django.contrib.auth.models import Group
 
     def __str__(self):
         return f"{self.nivel} - {self.grupo.name} - {self.indicador}: {self.promedio}"
-     """
-    
-    
-""" class GrupoJerarquico(models.Model):
+
+
+class GrupoJerarquico(models.Model):
     grupo = models.OneToOneField(Group, on_delete=models.CASCADE, related_name="jerarquia")
     nivel = models.CharField(
         max_length=50,
@@ -327,4 +259,4 @@ from django.contrib.auth.models import Group
     )
 
     def __str__(self):
-        return f"{self.grupo.name} ({self.nivel})" """
+        return f"{self.grupo.name} ({self.nivel})"

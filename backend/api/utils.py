@@ -1,6 +1,10 @@
 
 from .models import Carrera, CustomUser, Departamento #, IndicadorPromedio, ScoreIndicador
 from django.contrib.auth.models import Group
+from django.db.models import Avg
+from api.models import Carrera, Departamento, ScoreIndicador, IndicadorPromedio, CustomUser
+
+
 
 def calculate_construct_score(responses, reverse_items=None, weights=None, method="sum", normalize=False):
     """
@@ -142,7 +146,7 @@ def calcular_scores_tutor():
     resultados = {}
 
     for tutor in tutores:
-        indicadores = ScoreIndicador.objects.filter(usuario=tutor)
+        indicadores = ScoreIndicador.objects.filter(usuario=tutor).select_related('indicador')
         promedios = calcular_promedios_indicadores(indicadores)
 
         for indicador, promedio in promedios.items():
@@ -156,17 +160,16 @@ def calcular_scores_tutor():
 
     return resultados
 
-def calcular_scores_jerarquicos():
+
+def calcular_scores_jerarquicos(usuario, nivel, identificador):
     """
     Calcula los scores de los indicadores jerárquicamente desde Carrera hasta Nación.
     """
     resultados = {}
 
-    # Nivel Carrera
-    carreras = Carrera.objects.all()
-    resultados['carrera'] = {}
-    for carrera in carreras:
-        indicadores = ScoreIndicador.objects.filter(usuario__carrera=carrera)
+    if nivel == 'carrera':
+        carrera = Carrera.objects.get(id=identificador) if identificador.isdigit() else Carrera.objects.get(nombre=identificador)
+        indicadores = ScoreIndicador.objects.filter(usuario__carrera=carrera).select_related('indicador')
         promedios = calcular_promedios_indicadores(indicadores)
         for indicador, promedio in promedios.items():
             IndicadorPromedio.objects.update_or_create(
@@ -175,22 +178,52 @@ def calcular_scores_jerarquicos():
                 indicador=indicador,
                 defaults={'promedio': promedio}
             )
-        resultados['carrera'][carrera.nombre] = promedios
+        resultados['carrera'] = {carrera.nombre: promedios}
 
-    # Repetir para otros niveles...
-    departamentos = Departamento.objects.all()
-    resultados['departamento'] = {}
-    for departamento in departamentos:
+    elif nivel == 'departamento':
+        departamento = Departamento.objects.get(id=identificador) if identificador.isdigit() else Departamento.objects.get(nombre=identificador)
         carreras_departamento = Carrera.objects.filter(departamento=departamento)
-        promedios_acumulados = combinar_promedios(resultados['carrera'], carreras_departamento)
-        for indicador, promedio in promedios_acumulados.items():
+        promedios_acumulados = {}
+        for carrera in carreras_departamento:
+            indicadores = ScoreIndicador.objects.filter(usuario__carrera=carrera).select_related('indicador')
+            promedios = calcular_promedios_indicadores(indicadores)
+            for indicador, promedio in promedios.items():
+                if indicador not in promedios_acumulados:
+                    promedios_acumulados[indicador] = []
+                promedios_acumulados[indicador].append(promedio)
+        for indicador in promedios_acumulados:
+            promedios_acumulados[indicador] = sum(promedios_acumulados[indicador]) / len(promedios_acumulados[indicador])
             IndicadorPromedio.objects.update_or_create(
                 nivel="departamento",
                 grupo=Group.objects.get(name=f"Departamento - {departamento.nombre}"),
                 indicador=indicador,
+                defaults={'promedio': promedios_acumulados[indicador]}
+            )
+        resultados['departamento'] = {departamento.nombre: promedios_acumulados}
+
+    # Repetir para otros niveles (Instituto, Región, Nación)...
+    # Aquí puedes agregar el código para calcular los promedios para los niveles superiores
+
+    return resultados
+
+def calcular_scores_tutor():
+    """
+    Calcula los scores de los indicadores para cada tutor.
+    """
+    tutores = CustomUser.objects.filter(groups__name="Tutor")
+    resultados = {}
+
+    for tutor in tutores:
+        indicadores = ScoreIndicador.objects.filter(usuario=tutor).select_related('indicador')
+        promedios = calcular_promedios_indicadores(indicadores)
+
+        for indicador, promedio in promedios.items():
+            IndicadorPromedio.objects.update_or_create(
+                nivel="tutor",
+                grupo=None,
+                indicador=indicador,
                 defaults={'promedio': promedio}
             )
-        resultados['departamento'][departamento.nombre] = promedios_acumulados
-        
-    
+        resultados[tutor.username] = promedios
+
     return resultados

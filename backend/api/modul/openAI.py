@@ -1,62 +1,51 @@
 import os
 from typing import Literal
-from langchain_community.chat_models import ChatOpenAI
+from langchain.chat_models import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-from dotenv import load_dotenv
-import os
+from .prompt_template import prompt
 
-load_dotenv()
-model = ChatOpenAI(model="gpt-4")
+# Configurar la clave de API de OpenAI
+#os.environ["OPENAI_API_KEY"] = "tu_clave_de_api"
+
+# Configurar el modelo de OpenAI
+model = ChatOpenAI(
+    model="gpt-4",
+    temperature=0,
+)
+
+# Configurar el parser de salida
 parser = StrOutputParser()
 
-def prompt() -> ChatPromptTemplate:
-    system_template = "Actúa como si fueras un analista de datos en una empresa de consultoría. Necesitan que analices los siguientes datos psicológicos y generes un informe con base a ellos."
+def make_analysis(
+        data: dict,
+        report: Literal['retroalimentación', 'individual', 'departamento', 'institucional', 'regional', 'nacional'],
+        referencia: Literal['constructo', 'indicador']) -> str:
 
-    prompt_templates = """Genera {tipo_de_reporte} en base a los siguientes datos:
+    if not isinstance(data, dict):
+        raise TypeError("El parámetro 'data' debe ser un diccionario.")
 
-Nivel de análisis: {nivel_de_analisis}
+    if report not in ['retroalimentación', 'individual', 'departamento', 'institucional', 'regional', 'nacional']:
+        raise ValueError("El parámetro 'report' debe ser 'reporte' o 'retroalimentación'.")
 
-Detalles específicos: {detalles_especificos}
+    if referencia not in ['constructo', 'indicador']:
+        raise ValueError("El parámetro 'referencia' debe ser 'constructo' o 'indicador'.")
 
-Datos:
-{datos}
+    type_report = {
+        'retroalimentación': 'retroalimentación',
+        'individual': 'reporte individual',
+        'departamento': 'reporte departamento',
+        'institucional': 'reporte institucional',
+        'regional': 'reporte regional',
+        'nacional': 'reporte nacional'
+    }
+    data = {indicador["nombre"]: indicador["prom_score"] for indicador in data.get("indicador", [])}
 
-Haz un análisis y proporciona {objetivo_informe}. La persona que va a leer el análisis es {lector}. Regresa la respuesta en formato JSON, con los datos que consideres necesarios: fortalezas y áreas de oportunidad. Utiliza formato markdown para dar formato a tu respuesta, como viñetas, subrayado, etc.
-
-Ejemplo de respuesta:
-
-  "fortalezas": Análisis sobre la fortaleza de los datos
-  "oportunidad": Análisis sobre las áreas de oportunidad de los datos
-"""
-
-    prompt_template = ChatPromptTemplate.from_messages(
-        [("system", system_template), ("user", prompt_templates)]
-    )
-    return prompt_template
-
-from langchain_core.output_parsers import JsonOutputParser
-
-parser = JsonOutputParser()  # Asegura que el resultado sea JSON
-
-def make_analysis(data: dict, report: Literal['reporte', 'retroalimentación'], referencia: Literal['constructo', 'indicador']) -> dict:
-    tipo_de_reporte = ['una retroalimentación hacia el tutor', 'un reporte']
-    nivel_de_analisis = ['tutor', 'coordinador programa educativo', 'coordinador institución educativa', 'coordinador región', 'coordinador país']
-    detalles_especificos = ['', 'los datos son la media, desviación estándar, moda']
-    objetivos_informe = ['una retroalimentación', 'un reporte']
-
+    print(data)
     promptTemplate = prompt()
 
     chain = promptTemplate | model | parser
-
-    resultado = chain.invoke({
-        "tipo_de_reporte": tipo_de_reporte[report],
-        "lector": nivel_de_analisis[0],
-        "nivel_de_analisis": nivel_de_analisis[0],
-        "detalles_especificos": detalles_especificos[0],
-        "objetivo_informe": objetivos_informe[0],
-        "datos": data
+    return chain.invoke({
+        'type_report': type_report[report],
+        'iteams': data.keys(),
+        'data': data
     })
-
-    print(f"Resultado de chain.invoke: {resultado}")  # Depuración
-    return resultado

@@ -8,6 +8,8 @@ from .models import *
 from .serializers import *
 from .utils import calcular_scores_jerarquicos, calcular_scores_tutor
 from api.modul.retro_chatgpt_service import procesar_cuestionarios
+from api.utils import calcular_scores_jerarquicos #verificar_autenticacion_y_jerarquia
+
 # ==========================
 # USUARIOS
 # ==========================
@@ -219,7 +221,7 @@ class UserRelatedDataView(APIView):
         )
         return Response(serializer.data)
     
-CAMPO_NIVEL = {
+    CAMPO_NIVEL = {
     'carrera': 'carrera_id',
     'departamento': 'departamento_id',
     'instituto': 'instituto_id'
@@ -307,3 +309,15 @@ class CalcularDatosJerarquicosView(APIView):
         """
         resultados = calcular_scores_jerarquicos()
         return Response({"message": "Datos jerárquicos calculados y almacenados.", "resultados": resultados}, status=status.HTTP_200_OK)
+
+""" 
+def calcular_scores_view(request, nivel, identificador):
+    usuario = request.user
+    try:
+        verificar_autenticacion_y_jerarquia(usuario, nivel, identificador)
+        resultados = calcular_scores_jerarquicos(usuario, nivel, identificador)
+        return JsonResponse(resultados)
+    except PermissionDenied as e:
+        return JsonResponse({'error': str(e)}, status=403)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500) """

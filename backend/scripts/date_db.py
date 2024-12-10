@@ -17,7 +17,7 @@ def create_fake_users():
     # Obtener o crear el departamento
     departamento, created = Departamento.objects.get_or_create(
         nombre="Sistemas Computacionales",
-        defaults={"jefe": fake.name(), "plan_estudio": "Plan de Estudios 1"}
+        defaults={"jefe": fake.name()} 
     )
 
     # Obtener o crear la carrera
