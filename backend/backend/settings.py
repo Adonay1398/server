@@ -135,7 +135,7 @@ DATABASES = {
     'default': dj_database_url.config(
         default=os.getenv('DATABASE_URL','postgresql://dbtutores_user:apdI1sFwvuBJZstb7g2A02J5j0TCcoMs@dpg-ctc4f49u0jms73cqloo0-a.oregon-postgres.render.com/dbtutores'),
         conn_max_age=600,
-        ssl_require=True
+    
     )
 }
 
@@ -196,11 +196,10 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
+    "http://localhost:3000"
 ]
 
 CORS_ALLOW_CREDENTIALS = True
-#ALLOWED_HOSTS = ['postgresql://dbtest_ik13_user:xPubywJhSpylUnwt1WE0l4rOWGeWLj2q@dpg-csnvttqj1k6c73badr3g-a.oregon-postgres.render.com/dbtest_ik13', 'localhost']
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
