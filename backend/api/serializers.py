@@ -188,6 +188,57 @@ class UserRelatedDataSerializer(serializers.ModelSerializer):
             for retro in retros
         ]
 
+class UserRelatedDataReporteSerializer(serializers.ModelSerializer):
+    """
+    Serializador para mostrar datos relacionados al usuario:
+    - Información personal
+    - Indicadores y sus puntajes
+    - Información del reporte
+    """
+    informacion_personal = UserPersonalInfoSerializer(source='*')
+    indicador = serializers.SerializerMethodField()
+    reporte = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CustomUser
+        fields = ['informacion_personal', 'indicador', 'reporte']
+
+    def get_indicador(self, obj):
+        """
+        Retorna los indicadores con sus puntajes para el usuario dado.
+        """
+        request = self.context.get('request')
+        if not request or not request.user or not request.user.is_authenticated:
+            raise serializers.ValidationError("Usuario no autenticado.")
+
+        user = request.user
+        indicadores = ScoreIndicador.objects.filter(usuario=user)
+        return IndicadorScoreSerializer(indicadores, many=True).data
+
+    def get_reporte(self, obj):
+        """
+        Retorna el reporte más reciente asociado al usuario.
+        """
+        request = self.context.get('request')
+        if not request or not request.user or not request.user.is_authenticated:
+            raise serializers.ValidationError("Usuario no autenticado.")
+
+        user = request.user
+        reporte = Reporte.objects.filter(usuario_generador=user).order_by('-fecha_generacion').first()
+        if not reporte:
+            return None
+        return {
+            "id": reporte.id,
+            "texto_fortalezas": reporte.texto_fortalezas,
+            "texto_oportunidades": reporte.texto_oportunidades,
+            "observaciones": reporte.observaciones,
+            #"fecha_generacion": reporte.fecha_generacion.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+
+
+
+
+
 class DatosAplicacionSerializer(serializers.ModelSerializer):
     """
     Serializador para DatosAplicacion, mostrando información de la aplicación,
@@ -520,11 +571,12 @@ class ConsultaJerarquicaResponseSerializer(serializers.Serializer):
         help_text="Retroalimentación generada basada en los resultados de la consulta jerárquica, incluyendo fortalezas y oportunidades identificadas."
     )
 
+# The `RegionSerializer` class serializes Region objects along with related Instituto objects.
 class RegionSerializer(serializers.ModelSerializer):
     institutos = InstitutoSerializer(many=True, read_only=True, source='instituto_set')
     def get_region(self,obj):
         datos = Region.objects.filter(cve_region=obj.cve_region, nombre=obj.nombre)
-        
+    #obiene los datos de la region cve_region , nombre y institutos 
     class Meta:
         model = Region
         fields = ['cve_region', 'nombre', 'institutos']
@@ -534,6 +586,7 @@ class RetroChatGPTSerializer(serializers.ModelSerializer):
     class Meta:
         model = RetroChatGPT
         fields = ['id', 'texto1', 'texto2', 'creado_en']
+    #obtiene los datos de la retroalimentacion texto1, texto2 y creado_en
         
 
 class IndicadorPromedioSerializer(serializers.ModelSerializer):

@@ -31,7 +31,7 @@ urlpatterns = [
     
     
     #jerarquia
-    path('jerarquia/', JerarquiaView.as_view(), name='jerarquia'),
+    #path('jerarquia/', JerarquiaView.as_view(), name='jerarquia'),
 
     # Admin
     path('admin/', admin.site.urls),
@@ -46,7 +46,8 @@ urlpatterns = [
     path("api/create-tutor/", CreateTutorView.as_view(), name="register_user"),
     path('users/', CustomUserListView.as_view(), name='user-list'),
     path('user/personal-info/', CustomUserDetailView.as_view(), name='user-detail'),
-    path('user/related-data/', UserRelatedDataView.as_view(), name='user-related-data'),
+    path('user/related-data-retro/', UserRelatedDataView.as_view(), name='user-related-data'),
+    path('user/related-data-reporte/', UserDataReporteView.as_view(), name='user-related-data'),
 
     # Cuestionarios
     path('cuestionario/', CuestionarioListView.as_view(), name='cuestionario-list'),
@@ -54,24 +55,23 @@ urlpatterns = [
     path('generate/', GenerateScoresView.as_view(), name='generate-score'),
     path('api/cuestionarios/status/', CuestionarioStatusView.as_view(), name='cuestionario-status'),
     # Constructos and Scores
-    path('constructo/', ConstructoListViews.as_view(), name='constructo-list'),
-    path('constructo/<int:pk>/', ConstructoDetailViews.as_view(), name='constructo-detail'),
-    path('score-constructo/', ScoreConstructoListViews.as_view(), name='score-constructo-list'),
-    path('score-indicador/', ScoreIndicadorListViews.as_view(), name='score-indicador-list'),
+    #path('constructo/', ConstructoListViews.as_view(), name='constructo-list'),
+    #path('constructo/<int:pk>/', ConstructoDetailViews.as_view(), name='constructo-detail'),
+    #path('score-constructo/', ScoreConstructoListViews.as_view(), name='score-constructo-list'),
+    #path('score-indicador/', ScoreIndicadorListViews.as_view(), name='score-indicador-list'),
 
     # Responses
-    path('store-responses/', StoreResponsesView.as_view(), name='store-responses'),
+    #path('store-responses/', StoreResponsesView.as_view(), name='store-responses'),
     path('responder-pregunta/', ResponderPreguntaView.as_view(), name='responder-pregunta'),
     # Aggregates and Group Scores
     #path('api/aggregate-scores/', GenerateAggregateScoreView.as_view(), name='aggregate-scores'),
     # Reporte
-    
-   
-    path('procesar-reporte/', GenerateScoresView.as_view(), name='procesar-reporte'),
-    path('listar-reportes/', ListarReportesAPIView.as_view(), name='listar-reportes'),
 
-    path('generar-retro/', GenerarRetroalimentacionView.as_view(), name='generar-retro'),
-    path('generar-ver-reporte/', GenerarVerReporteView.as_view(), name='generar-ver-reporte'),
+    #path('procesar-reporte/', GenerateScoresView.as_view(), name='procesar-reporte'),
+    #path('listar-reportes/', ListarReportesAPIView.as_view(), name='listar-reportes'),
+
+    #path('ver-retro/', GenerarRetroalimentacionView.as_view(), name='generar-retro'),
+    #path('ver-reporte/', GenerarVerReporteView.as_view(), name='generar-ver-reporte'),
 
     path('api/niveles/', NavegarNivelesAPIView.as_view(), name='navegar-niveles'),
 

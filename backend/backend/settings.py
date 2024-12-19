@@ -28,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')
+#SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')
 #OPENAI_API_KEY = config('OPENAI_API_KEY', default=None)
 
 #SECRET_KEY = 'django-insecure-&%$jrf&gk0ern1(!%=xmeh)$1f$)f6p*p!rm=xsmr$27g4^9-y'
@@ -160,7 +160,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'es-mx'
 
 TIME_ZONE = 'UTC'
 
