@@ -158,7 +158,7 @@ class UserRelatedDataSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ['informacion_personal',  'retrochatgpt']
+        fields = [  'retrochatgpt']
 
     
 
