@@ -516,19 +516,29 @@ class PreguntaView(APIView):
         if not DatosAplicacion.objects.filter(cve_aplic=aplicacion_id, asignaciones__usuario=user).exists():
             return Response({"error": "No tiene acceso a esta aplicación."}, status=403)
 
+        # Obtener las preguntas ya contestadas
+        preguntas_contestadas = Respuesta.objects.filter(
+            user=user,
+            cve_aplic_id=aplicacion_id,
+            pregunta__cuestionario_id=cuestionario_id
+        ).values_list('pregunta__id_pregunta', flat=True)
+
         # Obtener preguntas pendientes
         preguntas_pendientes = Pregunta.objects.filter(
             cuestionario_id=cuestionario_id
-        ).exclude(
-            respuesta__user=user, respuesta__cve_aplic_id=aplicacion_id
-        )
+        ).exclude(id_pregunta__in=preguntas_contestadas)
 
+        # Calcular el número de inicio basado en las preguntas ya contestadas
+        numero_inicio = len(preguntas_contestadas) + 1
+
+        # Formatear las preguntas pendientes con número e ID
         data = [
             {
-                "id_pregunta": pregunta.cve_pregunta,
+                "numero": idx + numero_inicio,
+                "id_pregunta": pregunta.id_pregunta,
                 "texto_pregunta": pregunta.texto_pregunta,
             }
-            for pregunta in preguntas_pendientes
+            for idx, pregunta in enumerate(preguntas_pendientes)
         ]
 
         return Response({"preguntas": data}, status=200)
