@@ -152,7 +152,7 @@ class UserRelatedDataSerializer(serializers.ModelSerializer):
     - Indicadores y sus puntajes
     - Retroalimentación basada en indicadores del cuestionario.
     """
-    informacion_personal = UserPersonalInfoSerializer(source='*')
+    #informacion_personal = UserPersonalInfoSerializer(source='*')
     #indicador = serializers.SerializerMethodField()
     retrochatgpt = serializers.SerializerMethodField()
 
