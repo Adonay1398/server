@@ -5,7 +5,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from api.models import (
-    CustomUser, Carrera, IndicadorPromedio, Region, RetroChatGPT,  ScoreConstructo, ScoreIndicador, Constructo, Indicador,
+    AsignacionCuestionario, CustomUser, Carrera, IndicadorPromedio, Region, RetroChatGPT,  ScoreConstructo, ScoreIndicador, Constructo, Indicador,
     Instituto, Departamento, DatosAplicacion, Respuesta, Cuestionario ,  Pregunta,  Reporte, 
 )
 
@@ -420,7 +420,9 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
             last_name=validated_data['last_name'],
             email=validated_data['email'],
             fecha_nacimiento=validated_data['fecha_nacimiento'],
-            carrera=carrera
+            carrera=carrera,
+            
+            
         )
         user.set_password(validated_data['password'])
         user.save()
@@ -430,10 +432,18 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
         user.groups.add(tutores_group)
         try:
             aplicacion = DatosAplicacion.objects.get(pk=4)  # Busca la aplicación con ID 4
-            user.aplicacion = aplicacion
-            user.save()
+            cuestionario = Cuestionario.objects.get(pk=14)  # Busca el cuestionario con ID 4
+
+            # Crear la asignación en el modelo AsignacionCuestionario
+            AsignacionCuestionario.objects.create(
+                usuario=user,
+                cuestionario=cuestionario,
+                aplicacion=aplicacion,   
+            )
         except DatosAplicacion.DoesNotExist:
             raise serializers.ValidationError("La aplicación con ID 4 no existe.")
+        except Cuestionario.DoesNotExist:
+            raise serializers.ValidationError("El cuestionario con ID 4 no existe.")
         
 
         return user
