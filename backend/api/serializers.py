@@ -190,8 +190,8 @@ class UserRelatedDataSerializer(serializers.ModelSerializer):
 
         return [
             {
-                "texto1": retro.texto1 if retro.texto1 else None,
-                "texto2": retro.texto2 if retro.texto2 else None,
+                retro.texto1 if retro.texto1 else None,
+                retro.texto2 if retro.texto2 else None
             }
             for retro in retroalimentaciones
         ]
