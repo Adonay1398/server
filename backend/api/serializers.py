@@ -430,10 +430,18 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
         user.groups.add(tutores_group)
         try:
             aplicacion = DatosAplicacion.objects.get(pk=4)  # Busca la aplicación con ID 4
-            user.aplicacion = aplicacion
-            user.save()
+            cuestionario = Cuestionario.objects.get(pk=4)  # Busca el cuestionario con ID 4
+
+            # Crear la asignación en el modelo AsignacionCuestionario
+            AsignacionCuestionario.objects.create(
+                usuario=user,
+                cuestionario=cuestionario,
+                aplicacion=aplicacion
+            )
         except DatosAplicacion.DoesNotExist:
             raise serializers.ValidationError("La aplicación con ID 4 no existe.")
+        except Cuestionario.DoesNotExist:
+            raise serializers.ValidationError("El cuestionario con ID 4 no existe.")
         
 
         return user
