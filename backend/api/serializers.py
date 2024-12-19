@@ -175,13 +175,13 @@ class UserRelatedDataSerializer(serializers.ModelSerializer):
         user = request.user
 
         # Filtrar indicadores del cuestionario específico
-        indicadores = ScoreIndicador.objects.filter(
-            usuario=user,
-            aplicacion__cuestionario__cve_cuestionario=cuestionario_id
-        )
+        #indicadores = ScoreIndicador.objects.filter(
+        #    usuario=user,
+         #   aplicacion__cuestionario__cve_cuestionario=cuestionario_id
+        #)
 
-        if not indicadores.exists():
-            return []
+        #if not indicadores.exists():
+         #   return []
 
         # Obtener retroalimentaciones relacionadas con esos indicadores
         retroalimentaciones = RetroChatGPT.objects.filter(
