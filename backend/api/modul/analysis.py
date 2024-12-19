@@ -159,16 +159,18 @@ def calcular_scores(usuario, aplicacion):
         # Buscar "fortaleza" y "oportunidad" usando find
         reporte_texto = json.dumps(reporte, ensure_ascii=False, indent=4)
 
-        inicio_fortaleza = reporte_texto.find('"fortaleza"')  # Encuentra la clave "fortaleza"
-        inicio_oportunidad = reporte_texto.find('"oportunidad"')  # Encuentra la clave "oportunidad"
 
-        # Extraer el contenido entre las llaves
+        # Encontrar la posición de las claves "fortaleza" y "oportunidad"
+        inicio_fortaleza = reporte_texto.find('"fortaleza: "') + len('"fortaleza: "')  # Empieza después de "fortaleza: "
+        inicio_oportunidad = reporte_texto.find('"oportunidad: "') + len('"oportunidad: "')  # Empieza después de "oportunidad: "
+
+        # Encontrar el final del contenido
         fin_fortaleza = reporte_texto.find('",', inicio_fortaleza)  # Final del valor de "fortaleza"
-        texto1 = reporte_texto[inicio_fortaleza:fin_fortaleza].strip()
+        texto1 = reporte_texto[inicio_fortaleza:fin_fortaleza].strip()  # Extraer solo el contenido
 
-        # Extraer el contenido de "oportunidad"
-        fin_oportunidad = reporte_texto.find('\n', inicio_oportunidad + len('"oportunidad"'))
-        texto2 = reporte_texto[inicio_oportunidad:fin_oportunidad].strip()
+        fin_oportunidad = reporte_texto.find('\n', inicio_oportunidad)  # Final del valor de "oportunidad"
+        texto2 = reporte_texto[inicio_oportunidad:fin_oportunidad].strip()  # Extraer solo el contenido
+        
         print("ok8")
         # Guardar el reporte en RetroChatGPT
         
