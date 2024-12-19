@@ -428,7 +428,15 @@ class ResponderPreguntaView(APIView):
                 cve_aplic=aplicacion,
                 defaults={"valor": respuesta_valor},
             )
-
+            total_preguntas = Pregunta.objects.filter(cuestionario=pregunta.cuestionario).count()
+            preguntas_contestadas = Respuesta.objects.filter(
+                user=user, 
+                cve_aplic=aplicacion, 
+                pregunta__cuestionario=pregunta.cuestionario
+            ).count()
+            if preguntas_contestadas == total_preguntas:
+                # Si se han contestado todas las preguntas, calcular scores
+                calcular_scores(user, aplicacion)
             # Construir la respuesta de éxito
             response_data = {
                 "mensaje": "Respuesta guardada exitosamente.",
