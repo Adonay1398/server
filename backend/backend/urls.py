@@ -46,7 +46,7 @@ urlpatterns = [
     path("api/create-tutor/", CreateTutorView.as_view(), name="register_user"),
     path('users/', CustomUserListView.as_view(), name='user-list'),
     path('user/personal-info/', CustomUserDetailView.as_view(), name='user-detail'),
-    path('user/related-data-retro/', UserRelatedDataView.as_view(), name='user-related-data'),
+    path('api/user-related-data-retro/<int:cuestionario_id>/', UserRelatedDataRetroView.as_view(), name='user-related-data'),
     path('user/related-data-reporte/', UserDataReporteView.as_view(), name='user-related-data'),
 
     # Cuestionarios

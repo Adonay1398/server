@@ -138,57 +138,43 @@ class CuestionarioListView(generics.ListCreateAPIView):
     serializer_class = CuestionarioSerializer
     permission_classes = [IsAuthenticated]
 
-class CuestionarioStatusView(generics.RetrieveAPIView):
+class CuestionarioStatusView(APIView):
     """
-    Obtener el estado de los cuestionarios para el usuario autenticado.
+    Endpoint para obtener el estado de los cuestionarios relacionados con las aplicaciones asignadas.
     """
-    serializer_class = CuestionarioStatusSerializer
     permission_classes = [IsAuthenticated]
-    @swagger_auto_schema(
-            operation_summary="Obtener estado de cuestionarios",
-            operation_description="Este endpoint devuelve el estado de los cuestionarios asignados al usuario autenticado.",
-            responses={
-                200: openapi.Response(
-                    description="Estado de los cuestionarios.",
-                    examples={
-                        "application/json": {
-                            "cuestionarios": [
-                                {
-                                    "id": 1,
-                                    "nombre": "Cuestionario 1",
-                                    "estado": "completado",
-                                    "fecha_limite": "2024-12-20"
-                                },
-                                {
-                                    "id": 2,
-                                    "nombre": "Cuestionario 2",
-                                    "estado": "pendiente",
-                                    "fecha_limite": "2024-12-25"
-                                }
-                            ]
-                        }
-                    }
-                ),
-                401: openapi.Response(
-                    description="No autenticado.",
-                    examples={
-                        "application/json": {
-                            "detail": "No se proporcionaron las credenciales de autenticación."
-                        }
-                    }
-                )
-            }
-        )
+
     def get(self, request, *args, **kwargs):
-        """
-        Maneja la solicitud GET para obtener el estado de los cuestionarios.
-        """
-        serializer = CuestionarioStatusSerializer(
-            data={}, 
-            context={'request': request}  # Pasar el usuario autenticado al contexto
-        )
-        serializer.is_valid(raise_exception=True)  # Valida el serializador
-        return Response(serializer.data)  # Devuelve los datos procesados
+        user = request.user
+
+        # Obtener las aplicaciones asignadas al usuario
+        aplicaciones_asignadas = DatosAplicacion.objects.filter(asignaciones__usuario=user).distinct()
+        print(f"Aplicaciones asignadas al usuario: {aplicaciones_asignadas}")
+
+        if not aplicaciones_asignadas.exists():
+            return Response({"on_hold": {"current": [], "past": []}, "submited": []}, status=200)
+
+        data = []
+        for aplicacion in aplicaciones_asignadas:
+            for cuestionario in aplicacion.cuestionario.all():  # Relación ManyToMany
+                preguntas_contestadas = Respuesta.objects.filter(
+                    user=user, pregunta__cuestionario=cuestionario, cve_aplic=aplicacion
+                ).count()
+                total_preguntas = cuestionario.preguntas.count()
+
+                data.append({
+                    "cve_cuestionario": cuestionario.cve_cuestionario,
+                    "nombre_corto": cuestionario.nombre_corto,
+                    "is_active": cuestionario.is_active,
+                    "fecha_inicio": cuestionario.fecha_inicio,
+                    "fecha_fin": cuestionario.fecha_fin,
+                    "is_past": cuestionario.fecha_fin and cuestionario.fecha_fin < timezone.now(),
+                    "aplicaciones": [{"cve_aplic": aplicacion.cve_aplic}],
+                    "total_preguntas": total_preguntas,
+                    "preguntas_contestadas": preguntas_contestadas,
+                })
+
+        return Response({"on_hold": {"current": data, "past": []}, "submited": []})
 
 # ==========================
 # RESPUESTAS
@@ -314,32 +300,25 @@ class StoreResponsesView(APIView):
 
 # ==========================
 
-class UserRelatedDataView(APIView):
-    permission_classes = [IsAuthenticated]
-    @swagger_auto_schema(
-        responses={
-            200: openapi.Response(
-                description="Información relacionada al usuario autenticado.",
-                schema=UserRelatedDataSerializer
-            ),
-            401: openapi.Response(
-                description="Usuario no autenticado.",
-                examples={
-                    "application/json": {
-                        "detail": "No se enviaron credenciales de autenticación."
-                    }
-                }
-            )
-        }
-    )
-    def get(self, request, *args, **kwargs):
-        serializer = UserRelatedDataSerializer(
-            instance=request.user,  # Pasar el usuario autenticado como instancia
-            context={'request': request}  # Contexto necesario para el serializador
-        )
-        return Response(serializer.data)
-    
 
+class UserRelatedDataRetroView(APIView):
+    """
+    Vista para obtener datos relacionados con el usuario y un cuestionario específico.
+    """
+    permission_classes = [IsAuthenticated]
+
+    
+    def get(self, request, cuestionario_id, *args, **kwargs):
+        # Serializar datos del usuario con el contexto adicional
+        serializer = UserRelatedDataSerializer(
+            instance=request.user,
+            context={
+                "request": request,
+                "cuestionario_id": cuestionario_id
+            }
+        )
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
 class UserDataReporteView(APIView):
     """
     Vista para obtener información relacionada con el usuario autenticado.
@@ -366,7 +345,21 @@ class UserDataReporteView(APIView):
         """
         Retorna la información relacionada al usuario autenticado.
         """
-        serializer = UserRelatedDataReporteSerializer(request.user, context={"request": request})
+        # Obtener el ID del cuestionario desde los query params
+        cuestionario_id = request.data.get('cuestionario_id')
+        print(cuestionario_id)  # Verifica los parámetros enviados en la solicitud
+
+        if not cuestionario_id:
+            return Response(
+                {"error": "Debe proporcionar un ID de cuestionario válido."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Pasar el ID del cuestionario al serializador a través del contexto
+        serializer = UserRelatedDataReporteSerializer(
+            request.user,
+            context={"request": request, "cuestionario_id": cuestionario_id}
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -401,6 +394,11 @@ class ResponderPreguntaView(APIView):
         id_pregunta = request.data.get("id_pregunta")  # Este será el cve_pregunta enviado desde el cliente
         respuesta_valor = request.data.get("respuesta")
         cve_aplic = request.data.get("cve_aplic")
+        user = request.user
+
+        # Verificar si la aplicación está asignada al usuario
+        if not DatosAplicacion.objects.filter(cve_aplic=cve_aplic, asignaciones__usuario=user).exists():
+            return Response({"error": "No tiene acceso a esta aplicación."}, status=403)
 
         if not id_pregunta or not respuesta_valor or not cve_aplic:
             return Response(
@@ -438,7 +436,6 @@ class ResponderPreguntaView(APIView):
             return Response({"error": "Pregunta no encontrada."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 
 
@@ -502,150 +499,39 @@ class JerarquiaView(APIView):
  """
 class PreguntaView(APIView):
     """
-    Vista para manejar solicitudes relacionadas con la entidad Pregunta.
+    Vista para manejar solicitudes relacionadas con las preguntas de un cuestionario.
     """
-    
     permission_classes = [IsAuthenticated]
-    @swagger_auto_schema(
-        manual_parameters=[
-            openapi.Parameter(
-                'cuestionario', openapi.IN_QUERY,
-                description="ID del cuestionario.",
-                type=openapi.TYPE_STRING,
-                required=True
-            ),
-            openapi.Parameter(
-                'aplicacion', openapi.IN_QUERY,
-                description="ID de la aplicación.",
-                type=openapi.TYPE_STRING,
-                required=False
-            )
-        ],
-        responses={
-            200: openapi.Response(
-                description="Preguntas pendientes obtenidas con éxito.",
-                examples={
-                    "application/json": {
-                        "preguntas": [
-                            {
-                                "numero": 1,
-                                "id_pregunta": "101",
-                                "texto_pregunta": "¿Cuál es tu color favorito?"
-                            },
-                            {
-                                "numero": 2,
-                                "id_pregunta": "102",
-                                "texto_pregunta": "¿Cuál es tu animal favorito?"
-                            }
-                        ]
-                    }
-                }
-            ),
-            400: openapi.Response(
-                description="Error en los parámetros proporcionados.",
-                examples={
-                    "application/json": {
-                        "error": "Debe proporcionar un cuestionario."
-                    }
-                }
-            ),
-            403: openapi.Response(
-                description="El cuestionario no está asignado al usuario.",
-                examples={
-                    "application/json": {
-                        "error": "El cuestionario no está asignado al usuario."
-                    }
-                }
-            ),
-            404: openapi.Response(
-                description="Cuestionario no encontrado.",
-                examples={
-                    "application/json": {
-                        "error": "Cuestionario no encontrado."
-                    }
-                }
-            ),
-            500: openapi.Response(
-                description="Error interno del servidor.",
-                examples={
-                    "application/json": {
-                        "error": "Error inesperado: detalle del error."
-                    }
-                }
-            )
-        }
-    )
+
     def get(self, request, *args, **kwargs):
+        cuestionario_id = request.query_params.get("cuestionario")
+        aplicacion_id = request.query_params.get("aplicacion")
 
+        if not cuestionario_id or not aplicacion_id:
+            return Response({"error": "Debe proporcionar el ID del cuestionario y la aplicación."}, status=400)
 
-        cuestionario_id = request.query_params.get('cuestionario', None)
-        aplicacion_id = request.query_params.get('aplicacion', None)
         user = request.user
 
-        if not cuestionario_id :
-            return Response({"error": "Debe proporcionar un cuestionario "}, status=status.HTTP_400_BAD_REQUEST)
+        # Verificar si la aplicación está asignada al usuario
+        if not DatosAplicacion.objects.filter(cve_aplic=aplicacion_id, asignaciones__usuario=user).exists():
+            return Response({"error": "No tiene acceso a esta aplicación."}, status=403)
 
-        try:
-            # Verificar si el cuestionario está asignado al usuario
-            asignacion =AsignacionCuestionario.objects.filter(usuario=user, cuestionario_id=cuestionario_id, aplicacion_id=aplicacion_id).first()
-            if not asignacion:
-                return Response({"error": "El cuestionario no está asignado al usuario"}, status=status.HTTP_403_FORBIDDEN)
-            # Verificar si el cuestionario ya fue completado
-            if asignacion.completado:
-                return Response({"error": "El cuestionario ya fue completado"}, status=status.HTTP_400_BAD_REQUEST)
+        # Obtener preguntas pendientes
+        preguntas_pendientes = Pregunta.objects.filter(
+            cuestionario_id=cuestionario_id
+        ).exclude(
+            respuesta__user=user, respuesta__cve_aplic_id=aplicacion_id
+        )
 
-            # Obtener preguntas contestadas
-            respuestas = Respuesta.objects.filter(user=user, pregunta__cuestionario=cuestionario_id,cve_aplic=aplicacion_id)
-            preguntas_contestadas = respuestas.values_list('pregunta__id_pregunta', flat=True)
-            numero_inicio = len(preguntas_contestadas) + 1
+        data = [
+            {
+                "id_pregunta": pregunta.cve_pregunta,
+                "texto_pregunta": pregunta.texto_pregunta,
+            }
+            for pregunta in preguntas_pendientes
+        ]
 
-            # Obtener preguntas pendientes
-            preguntas_pendientes = Pregunta.objects.filter(cuestionario_id=cuestionario_id).exclude(cve_pregunta__in=list(map(preguntas_contestadas)))
-
-            if preguntas_pendientes.exists():
-                # Hay preguntas pendientes, numerarlas a partir del número inicial
-                data = [
-                    {
-                        'numero': idx + numero_inicio,
-                        'id_pregunta': pregunta.id_pregunta,
-                        'texto_pregunta': pregunta.texto_pregunta
-                    } for idx, pregunta in enumerate(preguntas_pendientes)
-                ]
-                return Response({ "preguntas": data}, status=status.HTTP_200_OK)
-
-            # Si no hay preguntas pendientes, retornar todas las preguntas
-        except Cuestionario.DoesNotExist:
-                return Response({"error": "Cuestionario no encontrado"}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-                return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    def post(self, request, *args, **kwargs):
-        """
-        Maneja las solicitudes POST para crear una nueva pregunta.
-        """
-        serializer = PreguntaSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def put(self, request, *args, **kwargs):
-        """
-        Maneja las solicitudes PUT para actualizar una pregunta existente.
-        """
-        pregunta_id = request.data.get('id_pregunta', None)
-        if not pregunta_id:
-            return Response({"error": "Se requiere el campo 'id'"}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            pregunta = Pregunta.objects.get(id=pregunta_id)
-            serializer = PreguntaSerializer(pregunta, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Pregunta.DoesNotExist:
-            return Response({"error": "Pregunta no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"preguntas": data}, status=200)
 
 
 

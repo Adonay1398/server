@@ -143,57 +143,64 @@ class UserPersonalInfoSerializer(serializers.ModelSerializer):
         return obj.carrera.nombre if obj.carrera else None
 
 
+
+
 class UserRelatedDataSerializer(serializers.ModelSerializer):
     """
     Serializador para mostrar datos relacionados al usuario:
     - Información personal
     - Indicadores y sus puntajes
-    - Retroalimentación de RetroChatGPT
+    - Retroalimentación basada en indicadores del cuestionario.
     """
     informacion_personal = UserPersonalInfoSerializer(source='*')
-    indicador = serializers.SerializerMethodField()
+    #indicador = serializers.SerializerMethodField()
     retrochatgpt = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
-        fields = ['informacion_personal', 'indicador', 'retrochatgpt']
+        fields = ['informacion_personal',  'retrochatgpt']
 
-    def get_indicador(self, obj):
-        """
-        Retorna los indicadores con sus puntajes para el usuario dado.
-        """
-        request = self.context.get('request')
-        if not request or not request.user or not request.user.is_authenticated:
-            raise serializers.ValidationError("Usuario no autenticado.")
-
-        user = request.user
-        indicadores = ScoreIndicador.objects.filter(usuario=user)
-        return IndicadorScoreSerializer(indicadores, many=True).data
+    
 
     def get_retrochatgpt(self, obj):
         """
-        Retorna la retroalimentación de RetroChatGPT para el usuario dado.
+        Retorna la retroalimentación basada en indicadores de un cuestionario específico.
         """
         request = self.context.get('request')
-        if not request or not request.user or not request.user.is_authenticated:
-            raise serializers.ValidationError("Usuario no autenticado.")
+        cuestionario_id = self.context.get('cuestionario_id')
+
+        if not cuestionario_id:
+            raise serializers.ValidationError("El parámetro 'cuestionario_id' es obligatorio en el contexto.")
 
         user = request.user
-        retros = RetroChatGPT.objects.filter(usuario=user)
+
+        # Filtrar indicadores del cuestionario específico
+        indicadores = ScoreIndicador.objects.filter(
+            usuario=user,
+            aplicacion__cuestionario__cve_cuestionario=cuestionario_id
+        )
+
+        if not indicadores.exists():
+            return []
+
+        # Obtener retroalimentaciones relacionadas con esos indicadores
+        retroalimentaciones = RetroChatGPT.objects.filter(
+            usuario=user,
+        )
+
         return [
             {
                 "texto1": retro.texto1 if retro.texto1 else None,
                 "texto2": retro.texto2 if retro.texto2 else None,
             }
-            for retro in retros
+            for retro in retroalimentaciones
         ]
-
 class UserRelatedDataReporteSerializer(serializers.ModelSerializer):
     """
     Serializador para mostrar datos relacionados al usuario:
     - Información personal
-    - Indicadores y sus puntajes
-    - Información del reporte
+    - Indicadores y sus puntajes basados en un cuestionario
+    - Información del reporte asociado al cuestionario
     """
     informacion_personal = UserPersonalInfoSerializer(source='*')
     indicador = serializers.SerializerMethodField()
@@ -205,26 +212,32 @@ class UserRelatedDataReporteSerializer(serializers.ModelSerializer):
 
     def get_indicador(self, obj):
         """
-        Retorna los indicadores con sus puntajes para el usuario dado.
+        Retorna los indicadores y sus puntajes para el cuestionario especificado.
         """
         request = self.context.get('request')
+        cuestionario_id = self.context.get('cuestionario_id')
+
         if not request or not request.user or not request.user.is_authenticated:
             raise serializers.ValidationError("Usuario no autenticado.")
 
+        # Filtrar los indicadores por usuario y cuestionario
         user = request.user
-        indicadores = ScoreIndicador.objects.filter(usuario=user)
+        indicadores = ScoreIndicador.objects.filter(usuario=user, cuestionario_id=cuestionario_id)
         return IndicadorScoreSerializer(indicadores, many=True).data
 
     def get_reporte(self, obj):
         """
-        Retorna el reporte más reciente asociado al usuario.
+        Retorna el reporte basado en el cuestionario especificado.
         """
         request = self.context.get('request')
+        cuestionario_id = self.context.get('cuestionario_id')
+
         if not request or not request.user or not request.user.is_authenticated:
             raise serializers.ValidationError("Usuario no autenticado.")
 
+        # Filtrar el reporte por usuario y cuestionario
         user = request.user
-        reporte = Reporte.objects.filter(usuario_generador=user).order_by('-fecha_generacion').first()
+        reporte = Reporte.objects.filter(usuario_generador=user, cuestionario_id=cuestionario_id).order_by('-fecha_generacion').first()
         if not reporte:
             return None
         return {
@@ -232,7 +245,6 @@ class UserRelatedDataReporteSerializer(serializers.ModelSerializer):
             "texto_fortalezas": reporte.texto_fortalezas,
             "texto_oportunidades": reporte.texto_oportunidades,
             "observaciones": reporte.observaciones,
-            #"fecha_generacion": reporte.fecha_generacion.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
 
@@ -416,6 +428,13 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
         # Asignar al grupo "Tutores"
         tutores_group, _ = Group.objects.get_or_create(name='Tutores')
         user.groups.add(tutores_group)
+        try:
+            aplicacion = DatosAplicacion.objects.get(pk=4)  # Busca la aplicación con ID 4
+            user.aplicacion = aplicacion
+            user.save()
+        except DatosAplicacion.DoesNotExist:
+            raise serializers.ValidationError("La aplicación con ID 4 no existe.")
+        
 
         return user
 

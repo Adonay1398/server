@@ -28,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-#SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')
+SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')
 #OPENAI_API_KEY = config('OPENAI_API_KEY', default=None)
 
 #SECRET_KEY = 'django-insecure-&%$jrf&gk0ern1(!%=xmeh)$1f$)f6p*p!rm=xsmr$27g4^9-y'
@@ -36,9 +36,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 #DEBUG = True
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS','127.0.0.1:8000,server-prueba1.onrender.com').split(',')
+#ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS','127.0.0.1:8000,server-prueba1.onrender.com').split(',')
 
-#ALLOWED_HOSTS=['127.0.0.1']
+ALLOWED_HOSTS=['127.0.0.1']
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ( 
@@ -208,3 +208,17 @@ import os
 # Configuración de archivos estáticos
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+}
