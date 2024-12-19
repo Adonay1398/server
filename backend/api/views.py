@@ -154,7 +154,9 @@ class CuestionarioStatusView(APIView):
         if not aplicaciones_asignadas.exists():
             return Response({"on_hold": {"current": [], "past": []}, "submited": []}, status=200)
 
-        data = []
+        on_hold_current = []
+        submitted = []
+
         for aplicacion in aplicaciones_asignadas:
             for cuestionario in aplicacion.cuestionario.all():  # Relación ManyToMany
                 preguntas_contestadas = Respuesta.objects.filter(
@@ -162,7 +164,7 @@ class CuestionarioStatusView(APIView):
                 ).count()
                 total_preguntas = cuestionario.preguntas.count()
 
-                data.append({
+                cuestionario_data = {
                     "cve_cuestionario": cuestionario.cve_cuestionario,
                     "nombre_corto": cuestionario.nombre_corto,
                     "is_active": cuestionario.is_active,
@@ -172,9 +174,18 @@ class CuestionarioStatusView(APIView):
                     "aplicaciones": [{"cve_aplic": aplicacion.cve_aplic}],
                     "total_preguntas": total_preguntas,
                     "preguntas_contestadas": preguntas_contestadas,
-                })
+                }
 
-        return Response({"on_hold": {"current": data, "past": []}, "submited": []})
+                # Clasificar en "submitted" o "on_hold"
+                if preguntas_contestadas == total_preguntas:
+                    submitted.append(cuestionario_data)
+                else:
+                    on_hold_current.append(cuestionario_data)
+
+        return Response({
+            "on_hold": {"current": on_hold_current, "past": []},
+            "submited": submitted
+        }, status=200)
 
 # ==========================
 # RESPUESTAS
