@@ -430,12 +430,12 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
         user.groups.add(tutores_group)
         try:
             aplicacion = DatosAplicacion.objects.get(pk=4)  # Busca la aplicación con ID 4
-            cuestionario = Cuestionario.objects.get(pk=4)  # Busca el cuestionario con ID 4
+            #cuestionario = Cuestionario.objects.get(pk=4)  # Busca el cuestionario con ID 4
 
             # Crear la asignación en el modelo AsignacionCuestionario
             AsignacionCuestionario.objects.create(
                 usuario=user,
-                cuestionario=cuestionario,
+                #cuestionario=cuestionario,
                 aplicacion=aplicacion
             )
         except DatosAplicacion.DoesNotExist:
