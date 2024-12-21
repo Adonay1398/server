@@ -1,0 +1,20 @@
+# Archivos de configuración sensibles
+.env
+secrets.py
+config.json
+
+# Directorios o archivos generados automáticamente
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+
+# Archivos de bases de datos locales
+*.sqlite3
+
+# Configuración de sistemas operativos
+.vscode/
+.idea/
+
+# Logs
+*.log
