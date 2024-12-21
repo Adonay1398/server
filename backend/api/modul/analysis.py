@@ -157,20 +157,14 @@ def calcular_scores(usuario, aplicacion):
         print("ok7")
         # Convertir el JSON a texto y dividirlo en texto1 y texto2
         # Buscar "fortaleza" y "oportunidad" usando find
-        reporte_texto = json.dumps(reporte, ensure_ascii=False, indent=4)
-
-
-        # Encontrar la posición de las claves "fortaleza" y "oportunidad"
-        inicio_fortaleza = reporte_texto.find('"fortaleza: "') + len('"fortaleza: "')  # Empieza después de "fortaleza: "
-        inicio_oportunidad = reporte_texto.find('"oportunidad: "') + len('"oportunidad: "')  # Empieza después de "oportunidad: "
-
-        # Encontrar el final del contenido
-        fin_fortaleza = reporte_texto.find('",', inicio_fortaleza)  # Final del valor de "fortaleza"
-        texto1 = reporte_texto[inicio_fortaleza:fin_fortaleza].strip()  # Extraer solo el contenido
-
-        fin_oportunidad = reporte_texto.find('\n', inicio_oportunidad)  # Final del valor de "oportunidad"
-        texto2 = reporte_texto[inicio_oportunidad:fin_oportunidad].strip()  # Extraer solo el contenido
         
+        texto1 = reporte.get("fortaleza", "").strip() 
+        texto2 = reporte.get("oportunidad", "").strip()
+        
+        if not texto1 or not texto2:
+            raise ValueError("El reporte no contiene claves válidas de 'fortaleza' u 'oportunidad'.")
+
+    
         print("ok8")
         # Guardar el reporte en RetroChatGPT
         

@@ -21,6 +21,7 @@ model = ChatOpenAI(
 
 
 
+
 parser = StrOutputParser()
 
 
@@ -47,7 +48,8 @@ def make_analysis(
     }
     #print(data)
     data = {indicador["nombre"]: indicador["prom_score"] for indicador in data.get("indicador", [])}
-    n = 1 if report == 'retroalimentación' else 2
+    #n = 1 if report == 'retroalimentación' else 2
+    n=2 
     response_dict = {}
     for i in range(n):    
         promptTemplate = prompt(i)
@@ -58,7 +60,7 @@ def make_analysis(
         chain = promptTemplate | model | parser
         response = chain.invoke({
             'type_report': type_report[report],
-            'iteams': list(data.keys()),
+            'iteams':data.keys(),
             'data': data
         })
         # Detener cronómetro

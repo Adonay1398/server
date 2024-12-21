@@ -56,6 +56,10 @@ class Carrera(models.Model):
 
 
 class CustomUser(AbstractUser):
+    email = models.EmailField(unique=True, verbose_name="Correo Electrónico")
+    username = models.CharField(
+        max_length=150, unique=True, blank=True, null=True
+    )
     fecha_nacimiento = models.DateField(null=True, blank=True)
     carrera = models.ForeignKey(Carrera, on_delete=models.SET_NULL, null=True, blank=True)
     aplicacion = models.ForeignKey('DatosAplicacion', on_delete=models.SET_NULL, null=True, blank=True)
@@ -73,19 +77,13 @@ class CustomUser(AbstractUser):
         help_text='Specific permissions for this user.',
         verbose_name='user permissions',
     )
-
-    @property
-    def edad(self):
-        if self.fecha_nacimiento:
-            today = date.today()
-            return (
-                today.year - self.fecha_nacimiento.year
-                - ((today.month, today.day) < (self.fecha_nacimiento.month, self.fecha_nacimiento.day))
-            )
-        return None
+    USERNAME_FIELD = 'email'  # El campo usado para autenticación
+    REQUIRED_FIELDS = []  # No requiere otros campos adicionales
+    
 
 
 class Cuestionario(models.Model):
+        
         cve_cuestionario = models.AutoField(primary_key=True)
         nombre_corto = models.CharField(max_length=255, unique=True)  # Unique identifier
         nombre_largo = models.CharField(max_length=255)

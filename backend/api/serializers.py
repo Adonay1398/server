@@ -3,6 +3,8 @@ from datetime import date
 from django.contrib.auth.models import Group
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework.exceptions import AuthenticationFailed
+from django.contrib.auth import get_user_model
 
 from api.models import (
     AsignacionCuestionario, CustomUser, Carrera, IndicadorPromedio, Region, RetroChatGPT,  ScoreConstructo, ScoreIndicador, Constructo, Indicador,
@@ -401,9 +403,19 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
 
         if not Carrera.objects.filter(nombre=carrera_nombre).exists():
             raise serializers.ValidationError({"carrera": "La carrera especificada no existe."})
+        
+        fecha_nacimiento = data.get('fecha_nacimiento')
+        if fecha_nacimiento:
+            today = date.today()
+            age = (
+                today.year - fecha_nacimiento.year
+                - ((today.month, today.day) < (fecha_nacimiento.month, fecha_nacimiento.day))
+            )
+            if age < 15 or age > 99:
+                raise serializers.ValidationError({"fecha_nacimiento": "La edad debe estar entre 15 y 99 años."})
 
         return data
-
+    
     def create(self, validated_data):
         """Crea el usuario tutor y lo asocia a la carrera e instituto por nombre."""
         instituto_nombre = validated_data.pop('instituto')
@@ -449,19 +461,37 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    def validate(self, attrs):
-        data = super().validate(attrs)
-        user = self.user
-        groups = [group.name for group in user.groups.all()]
-        
-        # Aquí se añaden los grupos al payload del token
+   def validate(self, attrs):
+        # Obtén el modelo de usuario configurado en Django
+        User = get_user_model()
+
+        # Busca al usuario por email
+        try:
+            user = User.objects.get(email=attrs.get('email'))
+        except User.DoesNotExist:
+            raise AuthenticationFailed('No se encontró un usuario con este correo electrónico.')
+
+        # Verifica la contraseña
+        if not user.check_password(attrs.get('password')):
+            raise AuthenticationFailed('Contraseña incorrecta.')
+
+        # Verifica si el usuario está activo
+        if not user.is_active:
+            raise AuthenticationFailed('Esta cuenta está inactiva.')
+
+        # Genera los tokens
         refresh_token = self.get_token(user)
+        access_token = refresh_token.access_token
+
+        # Incluye grupos en el token
+        groups = [group.name for group in user.groups.all()]
         refresh_token['groups'] = groups
-        
-        # Devolver el refresh token junto con los grupos
-        data['refresh'] = str(refresh_token)
-        data['access'] = str(refresh_token.access_token)
-        return data
+
+        # Devuelve los tokens con la información adicional
+        return {
+            'refresh': str(refresh_token),
+            'access': str(access_token),
+        }
 
 class IndicadorPromedioSerializer(serializers.ModelSerializer):
     """
