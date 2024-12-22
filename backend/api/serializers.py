@@ -385,7 +385,7 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = [
-            'id', 'username', 'first_name', 'last_name', 'email', 'password',
+            'id',  'first_name', 'last_name', 'email', 'password',
             'password2', 'fecha_nacimiento', 'instituto', 'carrera'
         ]
 
@@ -427,7 +427,7 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
 
         # Crear el usuario
         user = CustomUser(
-            username=validated_data['username'],
+            
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
             email=validated_data['email'],
