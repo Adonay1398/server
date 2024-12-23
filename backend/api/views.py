@@ -1,3 +1,4 @@
+from datetime import datetime
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from marshmallow import ValidationError
@@ -158,6 +159,7 @@ class CuestionarioStatusView(APIView):
             return Response({"on_hold": {"current": [], "past": []}, "submited": []}, status=200)
 
         on_hold_current = []
+        on_hold_past = []  # Inicializar la lista
         submitted = []
 
         for aplicacion in aplicaciones_asignadas:
@@ -165,31 +167,38 @@ class CuestionarioStatusView(APIView):
                 preguntas_contestadas = Respuesta.objects.filter(
                     user=user, pregunta__cuestionario=cuestionario, cve_aplic=aplicacion
                 ).count()
+
+                is_past = aplicacion.fecha_fin and aplicacion.fecha_fin < timezone.now().date()
+
                 total_preguntas = cuestionario.preguntas.count()
                 asignacion = AsignacionCuestionario.objects.filter(
                     usuario=user, cuestionario=cuestionario, aplicacion=aplicacion
                 ).first()
+
                 cuestionario_data = {
                     "cve_cuestionario": cuestionario.cve_cuestionario,
                     "nombre_corto": cuestionario.nombre_corto,
                     "is_active": cuestionario.is_active,
                     "fecha_inicio": cuestionario.fecha_inicio,
                     "fecha_fin": cuestionario.fecha_fin,
-                    "is_past": cuestionario.fecha_fin and cuestionario.fecha_fin < timezone.now(),
-                    "fechas_constestado": asignacion.fecha_completado ,
+                    "fecha_limite": aplicacion.fecha_limite,
+                    "is_past": is_past,
+                    "fecha_completado": asignacion.fecha_completado if asignacion else None,
                     "aplicaciones": [{"cve_aplic": aplicacion.cve_aplic}],
                     "total_preguntas": total_preguntas,
                     "preguntas_contestadas": preguntas_contestadas,
                 }
 
-                # Clasificar en "submitted" o "on_hold"
+                # Clasificar en "submitted", "on_hold_current" o "on_hold_past"
                 if preguntas_contestadas == total_preguntas:
                     submitted.append(cuestionario_data)
+                elif is_past:
+                    on_hold_past.append(cuestionario_data)
                 else:
                     on_hold_current.append(cuestionario_data)
 
         return Response({
-            "on_hold": {"current": on_hold_current, "past": []},
+            "on_hold": {"current": on_hold_current, "past": on_hold_past},
             "submited": submitted
         }, status=200)
 
@@ -456,7 +465,7 @@ class ResponderPreguntaView(APIView):
                     usuario=user, cuestionario=pregunta.cuestionario, aplicacion=aplicacion
                 )
                 asignacion.completado = True
-                asignacion.fecha_completado = now()  # Guardar la fecha actual
+                asignacion.fecha_completado = datetime.now()  # Guardar la fecha actual
                 asignacion.save()
                 thread = threading.Thread(target=calcular_scores, args= (user, aplicacion,pregunta.cuestionario))
                 thread.start()
@@ -546,7 +555,70 @@ class PreguntaView(APIView):
     Vista para manejar solicitudes relacionadas con las preguntas de un cuestionario.
     """
     permission_classes = [IsAuthenticated]
-
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                name="cuestionario",
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=True,
+                description="ID del cuestionario."
+            ),
+            openapi.Parameter(
+                name="aplicacion",
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                required=True,
+                description="Clave de la aplicación asociada."
+            ),
+        ],
+        responses={
+            200: openapi.Response(
+                description="Lista de preguntas pendientes y observaciones.",
+                examples={
+                    "application/json": {
+                        "Observaciones": "Esta es una observación de ejemplo para la aplicación.",
+                        "preguntas": [
+                            {
+                                "numero": 1,
+                                "id_pregunta": "P-101",
+                                "texto_pregunta": "¿Cuál es su nombre?"
+                            },
+                            {
+                                "numero": 2,
+                                "id_pregunta": "P-102",
+                                "texto_pregunta": "¿Cuál es su edad?"
+                            }
+                        ]
+                    }
+                }
+            ),
+            400: openapi.Response(
+                description="Faltan parámetros requeridos.",
+                examples={
+                    "application/json": {
+                        "error": "Debe proporcionar el ID del cuestionario y la aplicación."
+                    }
+                }
+            ),
+            403: openapi.Response(
+                description="Acceso denegado.",
+                examples={
+                    "application/json": {
+                        "error": "No tiene acceso a esta aplicación."
+                    }
+                }
+            ),
+            404: openapi.Response(
+                description="Aplicación no encontrada.",
+                examples={
+                    "application/json": {
+                        "error": "Aplicación no encontrada."
+                    }
+                }
+            )
+        }
+    )
     def get(self, request, *args, **kwargs):
         cuestionario_id = request.query_params.get("cuestionario")
         aplicacion_id = request.query_params.get("aplicacion")
@@ -1171,8 +1243,149 @@ class InstitutoCarrerasView(APIView):
     Endpoint para devolver la lista de institutos con solo el nombre y sus carreras.
     """
     permission_classes = [AllowAny]  # Opcional, si necesitas autenticación
-
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response(
+                description="Lista de institutos con sus carreras.",
+                examples={
+                    "application/json": [
+                        {
+                            "id": 1,
+                            "nombre_completo": "Instituto Tecnológico de Ejemplo",
+                            "carreras": [
+                                {
+                                    "id": 101,
+                                    "nombre": "Ingeniería en Sistemas Computacionales"
+                                },
+                                {
+                                    "id": 102,
+                                    "nombre": "Ingeniería Civil"
+                                }
+                            ]
+                        },
+                        {
+                            "id": 2,
+                            "nombre_completo": "Instituto Tecnológico Nacional",
+                            "carreras": [
+                                {
+                                    "id": 201,
+                                    "nombre": "Licenciatura en Administración"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ),
+            500: openapi.Response(
+                description="Error interno del servidor.",
+                examples={
+                    "application/json": {
+                        "error": "Error inesperado: detalle del error."
+                    }
+                }
+            )
+        }
+    )
     def get(self, request, *args, **kwargs):
         institutos = Instituto.objects.all()
         serializer = InstitutoSerializer(institutos, many=True)
         return Response(serializer.data, status=200)
+    
+class CascadeUploadView(APIView):
+    """
+    Vista para registrar o actualizar Región, Instituto, Departamento y Carrera por campos planos.
+    """
+    def post(self, request, *args, **kwargs):
+        serializer = CascadeUploadSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Datos validados
+        region_nombre = serializer.validated_data['region_nombre']
+        instituto_nombre = serializer.validated_data['instituto_nombre']
+        departamento_nombre = serializer.validated_data['departamento_nombre']
+        carrera_nombre = serializer.validated_data['carrera_nombre']
+
+        try:
+            # Crear o actualizar la región
+            region, _ = Region.objects.update_or_create(nombre=region_nombre)
+
+            # Crear o actualizar el instituto
+            instituto, _ = Instituto.objects.update_or_create(
+                nombre_completo=instituto_nombre,
+                defaults={"region": region}
+            )
+
+            # Crear o actualizar el departamento
+            departamento, _ = Departamento.objects.update_or_create(
+                nombre=departamento_nombre,
+                defaults={"instituto": instituto}
+            )
+
+            # Crear o actualizar la carrera
+            carrera, _ = Carrera.objects.update_or_create(
+                nombre=carrera_nombre,
+                defaults={"departamento": departamento}
+            )
+
+            return Response({
+                "message": "Registros actualizados o creados con éxito.",
+                "region": {"id": region.cve_region, "nombre": region.nombre},
+                "instituto": {"id": instituto.cve_inst, "nombre_completo": instituto.nombre_completo},
+                "departamento": {"id": departamento.cve_depto, "nombre": departamento.nombre},
+                "carrera": {"id": carrera.cve_carrera, "nombre": carrera.nombre},
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class CerrarAplicacionCuestionarioView(APIView):
+    """
+    Endpoint para cerrar una aplicación de un cuestionario.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        """
+        Maneja solicitudes POST para cerrar una aplicación de un cuestionario.
+
+        Parámetros:
+        - cve_aplic (int): Clave de la aplicación que se desea cerrar.
+
+        Respuesta:
+        - 200: Aplicación cerrada exitosamente.
+        - 404: Aplicación no encontrada.
+        - 400: La aplicación ya está cerrada o no se puede cerrar.
+        """
+        cve_aplic = request.data.get('cve_aplic')
+
+        if not cve_aplic:
+            return Response({"error": "El campo 'cve_aplic' es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Buscar la aplicación
+            aplicacion = DatosAplicacion.objects.get(cve_aplic=cve_aplic)
+
+            # Verificar si la aplicación ya está cerrada
+            if aplicacion.fecha_fin and aplicacion.fecha_fin < now().date():
+                return Response({"error": "La aplicación ya está cerrada."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Marcar la aplicación como cerrada
+            aplicacion.fecha_fin = now().date()
+            aplicacion.save()
+            theread = threading.Thread(target=generar_reporte_por_grupo, args=(request.user, aplicacion))
+            theread.start()
+            
+            return Response(
+                {
+                    "message": f"La aplicación con clave {cve_aplic} ha sido cerrada exitosamente.",
+                    "fecha_cierre": aplicacion.fecha_fin
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except DatosAplicacion.DoesNotExist:
+            return Response({"error": "Aplicación no encontrada."}, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

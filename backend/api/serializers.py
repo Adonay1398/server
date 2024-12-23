@@ -860,7 +860,7 @@ class UserRelatedDataSerializer(serializers.ModelSerializer):
         )
         print("ok2")
         if not retroalimentaciones.exists():
-            return {"mensaje": "No se encontraron retroalimentaciones para este cuestionario y aplicación."}
+            raise serializers.ValidationError("No se encontraron retroalimentaciones para este cuestionario y aplicación.")
 
         return [
             {
@@ -1113,6 +1113,7 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
         # Asignar al grupo "Tutores"
         tutores_group, _ = Group.objects.get_or_create(name='Tutores')
         user.groups.add(tutores_group)
+        
         try:
             aplicacion = DatosAplicacion.objects.get(pk=4)  # Busca la aplicación con ID 4
             cuestionario = Cuestionario.objects.get(pk=14)  # Busca el cuestionario con ID 4
@@ -1350,3 +1351,9 @@ class InstitutoSerializer(serializers.ModelSerializer):
         """
         carreras = Carrera.objects.filter(departamento__instituto=obj)
         return CarreraSerializer(carreras, many=True).data
+    
+class CascadeUploadSerializer(serializers.Serializer):
+    region_nombre = serializers.CharField(max_length=255, required=True)
+    instituto_nombre = serializers.CharField(max_length=255, required=True)
+    departamento_nombre = serializers.CharField(max_length=255, required=True)
+    carrera_nombre = serializers.CharField(max_length=255, required=True)

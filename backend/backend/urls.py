@@ -64,21 +64,14 @@ urlpatterns = [
     #path('store-responses/', StoreResponsesView.as_view(), name='store-responses'),
     path('responder-pregunta/', ResponderPreguntaView.as_view(), name='responder-pregunta'),
     path('institutos-carreras/', InstitutoCarrerasView.as_view(), name='institutos-carreras'),
+    path('api/cascade-upload/', CascadeUploadView.as_view(), name='cascade-upload'),
+
     
-    # Aggregates and Group Scores
-    #path('api/aggregate-scores/', GenerateAggregateScoreView.as_view(), name='aggregate-scores'),
-    # Reporte
-
-    #path('procesar-reporte/', GenerateScoresView.as_view(), name='procesar-reporte'),
-    #path('listar-reportes/', ListarReportesAPIView.as_view(), name='listar-reportes'),
-
-    #path('ver-retro/', GenerarRetroalimentacionView.as_view(), name='generar-retro'),
-    #path('ver-reporte/', GenerarVerReporteView.as_view(), name='generar-ver-reporte'),
-
-    path('api/niveles/', NavegarNivelesAPIView.as_view(), name='navegar-niveles'),
+    #path('api/niveles/', NavegarNivelesAPIView.as_view(), name='navegar-niveles'),
 
     path('api/asignar-cuestionario/', AsignarCuestionarioUsuarioView.as_view(), name='asignar-cuestionario'),
     path('api/asignar-cuestionaro-grupo/', AsignarCuestionarioGrupoView.as_view(), name='asignar-cuestionario-grupo'),
+    path('api/cerrar-aplicacion-cuestionario/', CerrarAplicacionCuestionarioView.as_view(), name='cerrar-aplicacion-cuestionario'),
     #path('api/generar-reporte/', GenerarReporteAPIView.as_view(), name='generar-reporte'),
     #path('procesar-cuestionarios/', ProcesarCuestionariosView.as_view(), name='procesar_cuestionarios'),
     #path('calcular-datos-tutor/', CalcularDatosTutorView.as_view(), name='calcular_datos_tutor'),
@@ -86,6 +79,7 @@ urlpatterns = [
     # API Documentation
     path('docs/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+    
 ] 
     #path("api/create-user/", CreateUserView.as_view(), name="create_user"),
 

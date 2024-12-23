@@ -143,6 +143,7 @@ class DatosAplicacion(models.Model):
     cuestionario = models.ManyToManyField(Cuestionario, related_name='aplicaciones')
     observaciones = models.TextField(blank=True, null=True)
     fecha_inicion = models.DateField(null=True, blank=True)
+    fecha_limite = models.DateField(null=True, blank=True)
     fecha_fin = models.DateField(null=True, blank=True)
 
     def __str__(self):
