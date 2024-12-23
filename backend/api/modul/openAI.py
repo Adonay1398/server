@@ -1,14 +1,16 @@
 import os
 from typing import Literal
+from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 import openai
 from .prompt_template import prompt
 import json
 import time
-
+load_dotenv()
 # Inicializar modelo de OpenAI
-openai.api_key = os.getenv("OPENAI_API_KEY")
+
+os.getenv("OPENAI_API_KEY")
 
 
 
@@ -48,8 +50,8 @@ def make_analysis(
     }
     #print(data)
     data = {indicador["nombre"]: indicador["prom_score"] for indicador in data.get("indicador", [])}
-    #n = 1 if report == 'retroalimentación' else 2
-    n=2 
+    n = 1 if report == 'retroalimentación' else 2
+    #n=2 
     response_dict = {}
     for i in range(n):    
         promptTemplate = prompt(i)

@@ -20,7 +20,7 @@ class CarreraSerializer(serializers.ModelSerializer):
         datos = Carrera.objects.filter(cve_carrera=obj.cve_carrera, nombre=obj.nombre)
     class Meta:
         model = Carrera
-        fields = ['cve_carrera', 'nombre', 'instituto']
+        fields = [ 'nombre' ]
 
 
 class CarreraDetailSerializer(serializers.ModelSerializer):
@@ -54,18 +54,19 @@ class InstitutoSerializer(serializers.ModelSerializer):
         datos = Instituto.objects.filter(cve_inst=obj.cve_inst, nombre_completo=obj.nombre_completo)
     class Meta:
         model = Instituto
-        fields = ['cve_inst', 'nombre_completo', 'tipo', 'ruta']
+        fields = [ 'nombre_completo']
 
 
 class DepartamentoSerializer(serializers.ModelSerializer):
     """
     Serializador para la entidad Departamento, mostrando su clave, nombre y jefe.
     """
+    carreras= CarreraSerializer(many=True, read_only=True)
     def get_departamento(self,obj):
         datos = Departamento.objects.filter(cve_depto=obj.cve_depto, nombre=obj.nombre)
     class Meta:
         model = Departamento
-        fields = ['cve_depto', 'nombre', 'jefe']
+        fields = [ 'nombre','carreras' ]
 
 
 class ConstructoSerializer(serializers.ModelSerializer):
@@ -169,11 +170,16 @@ class UserRelatedDataSerializer(serializers.ModelSerializer):
         Retorna la retroalimentación basada en indicadores de un cuestionario específico.
         """
         request = self.context.get('request')
-        cuestionario_id = self.context.get('cuestionario_id')
+        cuestionario_id = self.context.get('Cuestionario_id')
+        aplicacion_id = self.context.get('aplicacion')
+        
+        if not cuestionario_id :
+            raise serializers.ValidationError("El parámetro 'cuestionario_id' es obligatorio.")
+        
+        if not aplicacion_id:
+            raise serializers.ValidationError("Los parámetros  'aplicacion_id' son obligatorios.")
 
-        if not cuestionario_id:
-            raise serializers.ValidationError("El parámetro 'cuestionario_id' es obligatorio en el contexto.")
-
+        
         user = request.user
 
         # Filtrar indicadores del cuestionario específico
@@ -186,9 +192,13 @@ class UserRelatedDataSerializer(serializers.ModelSerializer):
          #   return []
 
         # Obtener retroalimentaciones relacionadas con esos indicadores
+        print("ok")
         retroalimentaciones = RetroChatGPT.objects.filter(
-            usuario=user,
+            usuario=user,Cuestionario_id =cuestionario_id, aplicacion_id = aplicacion_id
         )
+        print("ok2")
+        if not retroalimentaciones.exists():
+            return {"mensaje": "No se encontraron retroalimentaciones para este cuestionario y aplicación."}
 
         return [
             {
@@ -385,7 +395,7 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = [
-            'id', 'username', 'first_name', 'last_name', 'email', 'password',
+            'id',  'first_name', 'last_name', 'email', 'password',
             'password2', 'fecha_nacimiento', 'instituto', 'carrera'
         ]
 
@@ -427,7 +437,6 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
 
         # Crear el usuario
         user = CustomUser(
-            username=validated_data['username'],
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
             email=validated_data['email'],
@@ -582,6 +591,9 @@ class CuestionarioStatusSerializer(serializers.Serializer):
             print(preguntas_contestadas, total_preguntas)
             if total_preguntas > 0 and total_preguntas == preguntas_contestadas:
                 data = CuestionarioSerializer(c).data
+                # Obtener fecha de contestado desde AsignacionCuestionario
+                
+
                 print(f"Cuestionario {c.cve_cuestionario}: Total preguntas {total_preguntas}, Contestadas {preguntas_contestadas}")
                 # Agregar aplicaciones relacionadas al cuestionario
                 aplicaciones = DatosAplicacion.objects.filter(cuestionario=c)
@@ -659,3 +671,20 @@ class ReporteSerializer(serializers.ModelSerializer):
         fields = ['texto_fortalezas', 'texto_oportunidades', 'observaciones']
         
 
+
+class InstitutoSerializer(serializers.ModelSerializer):
+    """
+    Serializador para la entidad Instituto, incluyendo las carreras.
+    """
+    carreras = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Instituto
+        fields = ['nombre_completo', 'carreras']  # Solo incluir el nombre del instituto y las carreras
+
+    def get_carreras(self, obj):
+        """
+        Obtiene las carreras asociadas al instituto a través de sus departamentos.
+        """
+        carreras = Carrera.objects.filter(departamento__instituto=obj)
+        return CarreraSerializer(carreras, many=True).data

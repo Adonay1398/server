@@ -1,4 +1,5 @@
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
 from marshmallow import ValidationError
 from rest_framework.response import Response
 from rest_framework import generics, status
@@ -10,6 +11,8 @@ from .modul.GenerateAnalysGroups import generar_reporte_por_grupo
 from .modul.analysis import calcular_scores
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+import threading
+from django.utils.timezone import now
 
 from .models import *
 from .serializers import *
@@ -163,7 +166,9 @@ class CuestionarioStatusView(APIView):
                     user=user, pregunta__cuestionario=cuestionario, cve_aplic=aplicacion
                 ).count()
                 total_preguntas = cuestionario.preguntas.count()
-
+                asignacion = AsignacionCuestionario.objects.filter(
+                    usuario=user, cuestionario=cuestionario, aplicacion=aplicacion
+                ).first()
                 cuestionario_data = {
                     "cve_cuestionario": cuestionario.cve_cuestionario,
                     "nombre_corto": cuestionario.nombre_corto,
@@ -171,6 +176,7 @@ class CuestionarioStatusView(APIView):
                     "fecha_inicio": cuestionario.fecha_inicio,
                     "fecha_fin": cuestionario.fecha_fin,
                     "is_past": cuestionario.fecha_fin and cuestionario.fecha_fin < timezone.now(),
+                    "fechas_constestado": asignacion.fecha_completado ,
                     "aplicaciones": [{"cve_aplic": aplicacion.cve_aplic}],
                     "total_preguntas": total_preguntas,
                     "preguntas_contestadas": preguntas_contestadas,
@@ -319,13 +325,14 @@ class UserRelatedDataRetroView(APIView):
     permission_classes = [IsAuthenticated]
 
     
-    def get(self, request, cuestionario_id, *args, **kwargs):
+    def get(self, request, Cuestionario_id,aplicacion_id ,*args, **kwargs):
         # Serializar datos del usuario con el contexto adicional
         serializer = UserRelatedDataSerializer(
             instance=request.user,
             context={
                 "request": request,
-                "cuestionario_id": cuestionario_id
+                "Cuestionario_id": Cuestionario_id,
+                "aplicacion": aplicacion_id
             }
         )
 
@@ -420,13 +427,22 @@ class ResponderPreguntaView(APIView):
         try:
             aplicacion = DatosAplicacion.objects.get(cve_aplic=cve_aplic)
             pregunta = Pregunta.objects.get(id_pregunta=id_pregunta)  # Cam
+            
+            # Calcular el índice basado en la respuesta
+            index = int(respuesta_valor) - 1  # Restar 1 para convertir a índice de base 0
+            if index < 0 or index >= len(pregunta.scorekey):
+                return Response({"error": "Índice de respuesta fuera de rango para scorekey."}, status=400)
+            print("index:",index)
 
+            # Obtener el valor del scorekey en el índice correspondiente
+            score_value = pregunta.scorekey[index]
             # Crear o actualizar la respuesta asociada al usuario autenticado
+            print("valor score:",score_value)
             respuesta, created = Respuesta.objects.update_or_create(
                 user=request.user,
                 pregunta=pregunta,
                 cve_aplic=aplicacion,
-                defaults={"valor": respuesta_valor},
+                defaults={"valor": score_value},
             )
             total_preguntas = Pregunta.objects.filter(cuestionario=pregunta.cuestionario).count()
             preguntas_contestadas = Respuesta.objects.filter(
@@ -436,7 +452,16 @@ class ResponderPreguntaView(APIView):
             ).count()
             if preguntas_contestadas == total_preguntas:
                 # Si se han contestado todas las preguntas, calcular scores
-                calcular_scores(user, aplicacion)
+                asignacion = AsignacionCuestionario.objects.get(
+                    usuario=user, cuestionario=pregunta.cuestionario, aplicacion=aplicacion
+                )
+                asignacion.completado = True
+                asignacion.fecha_completado = now()  # Guardar la fecha actual
+                asignacion.save()
+                thread = threading.Thread(target=calcular_scores, args= (user, aplicacion,pregunta.cuestionario))
+                thread.start()
+                
+                return Response({"message": "Respuesta guardada y scores calculados."}, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
             # Construir la respuesta de éxito
             response_data = {
                 "mensaje": "Respuesta guardada exitosamente.",
@@ -552,6 +577,7 @@ class PreguntaView(APIView):
 
         # Formatear las preguntas pendientes con número e ID
         data = [
+            
             {
                 "numero": idx + numero_inicio,
                 "id_pregunta": pregunta.id_pregunta,
@@ -559,8 +585,9 @@ class PreguntaView(APIView):
             }
             for idx, pregunta in enumerate(preguntas_pendientes)
         ]
+        aplicacion = get_object_or_404(DatosAplicacion, cve_aplic=aplicacion_id)
 
-        return Response({"preguntas": data}, status=200)
+        return Response({"Observaciones":aplicacion.observaciones, "preguntas": data}, status=200)
 
 
 
@@ -731,6 +758,7 @@ class GenerateScoresView(APIView):
     def post(self, request, *args, **kwargs):
         usuario = request.user  # Usuario autenticado
         cuestionario_id = request.data.get('cuestionario')
+        
 
         try:
             # 1. Validar si el usuario tiene un grupo asignado
@@ -1136,3 +1164,15 @@ class NavegarNivelesAPIView(APIView):
 
         else:
             return Response({"error": f"Nivel '{nivel}' no válido."}, status=400)
+
+
+class InstitutoCarrerasView(APIView):
+    """
+    Endpoint para devolver la lista de institutos con solo el nombre y sus carreras.
+    """
+    permission_classes = [AllowAny]  # Opcional, si necesitas autenticación
+
+    def get(self, request, *args, **kwargs):
+        institutos = Instituto.objects.all()
+        serializer = InstitutoSerializer(institutos, many=True)
+        return Response(serializer.data, status=200)

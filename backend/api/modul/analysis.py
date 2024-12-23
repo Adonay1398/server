@@ -5,6 +5,7 @@ from api.utils import calculate_construct_score
 from .openAI import make_analysis
 from api.models import ScoreIndicador
 #from api.modul import calculate_score
+from celery import shared_task
 
 
 def obtener_nivel_jerarquico(usuario):
@@ -78,7 +79,9 @@ def tiene_acceso_a_cuestionario(usuario, cuestionario, nivel):
         return cuestionario.tutor_id == usuario.id
     return False
 
-def calcular_scores(usuario, aplicacion):
+
+@shared_task
+def calcular_scores(usuario, aplicacion, cuestionario):
     """
     Calcula los scores de constructos e indicadores para un usuario.
 
@@ -87,7 +90,9 @@ def calcular_scores(usuario, aplicacion):
 
     Returns:
         tuple: Scores de constructos, scores de indicadores, y el reporte generado.
+        
     """
+
     try:
         # Obtener respuestas del usuario
 
@@ -167,14 +172,17 @@ def calcular_scores(usuario, aplicacion):
     
         print("ok8")
         # Guardar el reporte en RetroChatGPT
+        try:
+                RetroChatGPT.objects.update_or_create(
+                    usuario=usuario,
+                    aplicacion_id=aplicacion.cve_aplic,
+                    Cuestionario_id = cuestionario.cve_cuestionario,
+                    texto1=texto1,
+                    texto2=texto2
+                )
+        except Exception as e:
+            print(f"Error al guardar el reporte en RetroChatGPT: {e}")
         
-        RetroChatGPT.objects.update_or_create(
-            usuario=usuario,
-            #aplicacion_id=aplicacion.cve_aplic,
-            #cve_retro = cve_retro,
-            texto1=texto1,
-            texto2=texto2
-        )
         print("ok9")
         # Debugging: Mostrar resultados
         """ print(f"Scores de Constructos: {scores_constructos}")

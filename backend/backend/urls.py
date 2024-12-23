@@ -46,7 +46,7 @@ urlpatterns = [
     path("api/create-tutor/", CreateTutorView.as_view(), name="register_user"),
     path('users/', CustomUserListView.as_view(), name='user-list'),
     path('user/personal-info/', CustomUserDetailView.as_view(), name='user-detail'),
-    path('api/user-related-data-retro/<int:cuestionario_id>/', UserRelatedDataRetroView.as_view(), name='user-related-data'),
+    path('api/user-related-data-retro/<int:Cuestionario_id>/<int:aplicacion_id>/', UserRelatedDataRetroView.as_view(), name='user-related-data'),
     path('user/related-data-reporte/', UserDataReporteView.as_view(), name='user-related-data'),
 
     # Cuestionarios
@@ -63,6 +63,8 @@ urlpatterns = [
     # Responses
     #path('store-responses/', StoreResponsesView.as_view(), name='store-responses'),
     path('responder-pregunta/', ResponderPreguntaView.as_view(), name='responder-pregunta'),
+    path('institutos-carreras/', InstitutoCarrerasView.as_view(), name='institutos-carreras'),
+    
     # Aggregates and Group Scores
     #path('api/aggregate-scores/', GenerateAggregateScoreView.as_view(), name='aggregate-scores'),
     # Reporte

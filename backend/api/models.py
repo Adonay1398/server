@@ -142,6 +142,8 @@ class DatosAplicacion(models.Model):
     hora = models.TimeField()
     cuestionario = models.ManyToManyField(Cuestionario, related_name='aplicaciones')
     observaciones = models.TextField(blank=True, null=True)
+    fecha_inicion = models.DateField(null=True, blank=True)
+    fecha_fin = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return f"Aplicación {self.cve_aplic} - {self.fecha}"
@@ -206,6 +208,8 @@ class ScoreIndicador(models.Model):
 
 class RetroChatGPT(models.Model):
     cve_retro = models.AutoField(primary_key=True)
+    aplicacion = models.ForeignKey(DatosAplicacion, on_delete=models.CASCADE)
+    Cuestionario = models.ForeignKey(Cuestionario, on_delete=models.CASCADE)
     usuario = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     texto1 = models.TextField()  # Fortalezas
     texto2 = models.TextField(blank=True, null=True)  # Áreas de oportunidad
@@ -283,6 +287,7 @@ class AsignacionCuestionario(models.Model):
     aplicacion = models.ForeignKey(DatosAplicacion, on_delete=models.CASCADE, related_name="asignaciones")
     completado = models.BooleanField(default=False)
     fecha_asignacion = models.DateTimeField(auto_now_add=True)
+    fecha_completado = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         unique_together = ('usuario', 'cuestionario', 'aplicacion')  # Evitar duplicados

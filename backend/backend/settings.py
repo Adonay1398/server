@@ -19,6 +19,7 @@ from pathlib import Path
 from datetime import timedelta
 from decouple import config
 import dj_database_url
+
 #from api.models import CustomUser
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -36,7 +37,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 #DEBUG = True
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS','server-prueba1.onrender.com')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS','127.0.0.1:8000,server-prueba1.onrender.com').split(',')
 
 #ALLOWED_HOSTS=['127.0.0.1']
 
@@ -222,3 +223,7 @@ LOGGING = {
         'level': 'DEBUG',
     },
 }
+
+""" CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json' """
