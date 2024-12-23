@@ -5,7 +5,6 @@ from api.utils import calculate_construct_score
 from .openAI import make_analysis
 from api.models import ScoreIndicador
 #from api.modul import calculate_score
-from celery import shared_task
 
 
 def obtener_nivel_jerarquico(usuario):
@@ -80,7 +79,7 @@ def tiene_acceso_a_cuestionario(usuario, cuestionario, nivel):
     return False
 
 
-@shared_task
+
 def calcular_scores(usuario, aplicacion, cuestionario):
     """
     Calcula los scores de constructos e indicadores para un usuario.
