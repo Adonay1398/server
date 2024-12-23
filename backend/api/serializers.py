@@ -395,7 +395,7 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = [
-            'id',  'first_name', 'last_name', 'email', 'password',
+            'id','first_name', 'last_name', 'email', 'password',
             'password2', 'fecha_nacimiento', 'instituto', 'carrera'
         ]
 
