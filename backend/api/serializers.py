@@ -1113,27 +1113,27 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
         # Asignar al grupo "Tutores"
         tutores_group, _ = Group.objects.get_or_create(name='Tutores')
         user.groups.add(tutores_group)
-        
+        user.add(DatosAplicacion.objects.get(pk=1))
         try:
             aplicacion = DatosAplicacion.objects.get(pk=4)  # Busca la aplicación con ID 4
-            cuestionario = Cuestionario.objects.get(pk=14)  # Busca el cuestionario con ID 4
+            cuestionario = Cuestionario.objects.get(pk=1)  # Busca el cuestionario con ID 4
 
             # Crear la asignación en el modelo AsignacionCuestionario
             AsignacionCuestionario.objects.create(
                 usuario=user,
                 cuestionario=cuestionario,
                 aplicacion=aplicacion,   
-            )
+            ) 
         except DatosAplicacion.DoesNotExist:
             raise serializers.ValidationError("La aplicación con ID 4 no existe.")
         except Cuestionario.DoesNotExist:
-            raise serializers.ValidationError("El cuestionario con ID 4 no existe.")
+            raise serializers.ValidationError("El cuestionario con ID 1 no existe.")
         
 
         return user
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-   def validate(self, attrs):
+    def validate(self, attrs):
         # Obtén el modelo de usuario configurado en Django
         User = get_user_model()
 
@@ -1357,3 +1357,31 @@ class CascadeUploadSerializer(serializers.Serializer):
     instituto_nombre = serializers.CharField(max_length=255, required=True)
     departamento_nombre = serializers.CharField(max_length=255, required=True)
     carrera_nombre = serializers.CharField(max_length=255, required=True)
+    
+
+class RelacionCuestionarioAplicacionSerializer(serializers.Serializer):
+    aplicacion_id = serializers.IntegerField()
+    cuestionario_id = serializers.IntegerField()
+
+    def validate(self, data):
+        # Validar si los IDs proporcionados existen
+        if not DatosAplicacion.objects.filter(cve_aplic=data['aplicacion_id']).exists():
+            raise serializers.ValidationError({"aplicacion_id": "La aplicación especificada no existe."})
+        if not Cuestionario.objects.filter(cve_cuestionario=data['cuestionario_id']).exists():
+            raise serializers.ValidationError({"cuestionario_id": "El cuestionario especificado no existe."})
+        return data
+
+    def create(self, validated_data):
+        # Obtener los objetos relacionados
+        aplicacion = DatosAplicacion.objects.get(cve_aplic=validated_data['aplicacion_id'])
+        cuestionario = Cuestionario.objects.get(cve_cuestionario=validated_data['cuestionario_id'])
+        
+        # Crear la relación
+        aplicacion.cuestionario.add(cuestionario)
+        return {"message": "Relación creada exitosamente."}
+
+    def delete(self, validated_data):
+        aplicacion = DatosAplicacion.objects.get(cve_aplic=validated_data['aplicacion_id'])
+        cuestionario = Cuestionario.objects.get(cve_cuestionario=validated_data['cuestionario_id'])
+        aplicacion.cuestionario.remove(cuestionario)
+        return {"message": "Relación eliminada exitosamente."}

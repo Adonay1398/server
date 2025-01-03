@@ -104,8 +104,12 @@ def calcular_scores(usuario, aplicacion, cuestionario):
         # Agrupar respuestas por constructo
         respuestas_por_constructo = defaultdict(list)
         for respuesta in respuestas:
-            if respuesta.pregunta.cve_const1:
-                respuestas_por_constructo[respuesta.pregunta.cve_const1].append(respuesta.valor)
+            # Check all construct fields in the question
+            for construct_field in ['cve_const1', 'cve_const2', 'cve_const3', 'cve_const4']:
+                constructo = getattr(respuesta.pregunta, construct_field, None)  # Get the constructo object
+                if constructo:
+                    respuestas_por_constructo[constructo].append(respuesta.valor)  # Add the response value to the construct
+
         print("ok")
         # Calcular scores normalizados por constructo
         scores_constructos = {}

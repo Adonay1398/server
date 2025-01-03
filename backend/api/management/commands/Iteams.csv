@@ -1,0 +1,164 @@
+ID_pregunta,Question,Category,Subcategory,is_value,Scorekey,Cuestionarion
+IPIP0014,Empatizo con los sentimientos de los demás.,Personalidad,Amabilidad,0,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0071,No estoy realmente interesado en los demás.,Personalidad,Amabilidad,0,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0076,No me interesan los problemas de otras personas.,Personalidad,Amabilidad,0,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0086,Percibo las emociones de los demás.,Personalidad,Amabilidad,0,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0014,Empatizo con los sentimientos de los demás.,Interación social,Compasión,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0050,Me gusta hacer cosas por los demás.,Interación social,Compasión,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0052,Me intereso por el bienestar de los demás.,Interación social,Compasión,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0053,Me intereso por la vida de otras personas.,Interación social,Compasión,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0069,No dedico tiempo a los demás.,Interación social,Compasión,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0074,No me importan las necesidades de los demás.,Interación social,Compasión,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0076,No me interesan los problemas de otras personas.,Interación social,Compasión,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0082,No tengo un lado suave.,Interación social,Compasión,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0087,Percibo las emociones de los demás.,Interación social,Compasión,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0114,Soy indiferente a los sentimientos de los demás.,Interación social,Compasión,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0003,A menudo olvido poner las cosas en su lugar.,Personalidad,Escrupulosidad,0,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0030,Hago las tareas de inmediato.,Personalidad,Escrupulosidad,0,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0032,Hago un desastre de las cosas.,Personalidad,Escrupulosidad,0,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0048,Me gusta el orden.,Personalidad,Escrupulosidad,0,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0024,Experimento mis emociones intensamente.,Interación social,Empatía,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0033,Lloro con facilidad.,Interación social,Empatía,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0041,Me conmueven profundamente las desgracias de otros.,Interación social,Empatía,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0045,Me emociono hasta las lágrimas con facilidad.,Interación social,Empatía,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0065,Me siento espiritualmente conectado con otras personas.,Interación social,Empatía,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0068,No comprendo a las personas emocionales.,Interación social,Empatía,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0096,Rara vez me emociono.,Interación social,Empatía,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0115,Sufro con las penas de otros.,Interación social,Empatía,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0028,Hablo con muchas personas diferentes en las fiestas.,Personalidad,Extroversión,0,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0072,No hablo mucho.,Personalidad,Extroversión,0,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0090,Prefiero permanecer en el fondo.,Personalidad,Extroversión,0,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0113,Soy el alma de la fiesta.,Personalidad,Extroversión,0,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0009,"Cuando interactúo con un grupo de personas, generalmente me molesta al menos una de ellas.",Autorregulación emocional y afectiva,Flexibilidad,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0017,Es difícil convencerme.,Autorregulación emocional y afectiva,Flexibilidad,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0018,Es difícil razonar conmigo.,Autorregulación emocional y afectiva,Flexibilidad,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0019,Es difícil satisfacerme.,Autorregulación emocional y afectiva,Flexibilidad,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0037,Me adapto fácilmente.,Autorregulación emocional y afectiva,Flexibilidad,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0058,Me molesta si otros cambian lo que he organizado.,Autorregulación emocional y afectiva,Flexibilidad,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0059,Me molestan los errores de otros.,Autorregulación emocional y afectiva,Flexibilidad,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0080,No soporto ser contradicho.,Autorregulación emocional y afectiva,Flexibilidad,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0102,Reacciono fuertemente a las críticas.,Autorregulación emocional y afectiva,Flexibilidad,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0111,Soy bueno para aceptar consejos.,Autorregulación emocional y afectiva,Flexibilidad,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0022,Estoy muy consciente de mi entorno.,Interación social,Habilidades interpersonales,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0034,Los demás se aprovechan de mí.,Interación social,Habilidades interpersonales,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0044,Me desconciertan mis propios pensamientos y sentimientos.,Interación social,Habilidades interpersonales,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0057,Me llevo bien con personas que acabo de conocer.,Interación social,Habilidades interpersonales,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0079,No sé cómo manejarme en una situación social nueva.,Interación social,Habilidades interpersonales,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0092,Puedo encajar en cualquier situación.,Interación social,Habilidades interpersonales,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0108,Sé lo que motiva a los demás.,Interación social,Habilidades interpersonales,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0109,Sé qué decir para que la gente se sienta bien.,Interación social,Habilidades interpersonales,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0112,Soy bueno para percibir lo que sienten los demás.,Interación social,Habilidades interpersonales,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0118,Tengo la capacidad de hacer que otros se sientan interesantes.,Interación social,Habilidades interpersonales,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0075,No me interesan las ideas abstractas.,Personalidad,Intelecto/Imaginación,0,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0081,No tengo mucha imaginación.,Personalidad,Intelecto/Imaginación,0,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0117,Tengo dificultades para entender ideas abstractas.,Personalidad,Intelecto/Imaginación,0,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0120,Tengo una imaginación viva.,Personalidad,Intelecto/Imaginación,0,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0013,Demando atención.,Interación social,Madurez,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0025,Experimento pocos altibajos emocionales.,Interación social,Madurez,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0029,Hago cosas locas.,Interación social,Madurez,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0031,Hago mucho ruido.,Interación social,Madurez,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0040,Me comporto de manera desenfrenada y descontrolada.,Interación social,Madurez,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0073,No me afectan fácilmente mis emociones.,Interación social,Madurez,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0085,Nunca gasto más de lo que puedo permitir.,Interación social,Madurez,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0121,Tomo decisiones impulsivas.,Interación social,Madurez,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0123,Uso la adulación para avanzar.,Interación social,Madurez,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0124,Uso malas palabras.,Interación social,Madurez,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0005,Cambio de humor con frecuencia.,Autorregulación emocional y afectiva,Manejo de afectividad,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0036,Me abruman las emociones.,Autorregulación emocional y afectiva,Manejo de afectividad,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0038,Me altero con facilidad.,Autorregulación emocional y afectiva,Manejo de afectividad,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0039,Me asusto fácilmente.,Autorregulación emocional y afectiva,Manejo de afectividad,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0042,Me dejo llevar por mis problemas.,Autorregulación emocional y afectiva,Manejo de afectividad,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0047,Me enojo fácilmente.,Autorregulación emocional y afectiva,Manejo de afectividad,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0055,Me irrito con facilidad.,Autorregulación emocional y afectiva,Manejo de afectividad,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0060,Me ofendo fácilmente.,Autorregulación emocional y afectiva,Manejo de afectividad,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0062,Me perturbo con facilidad.,Autorregulación emocional y afectiva,Manejo de afectividad,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0063,Me preocupo por las cosas.,Autorregulación emocional y afectiva,Manejo de afectividad,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0064,Me quejo de las cosas.,Autorregulación emocional y afectiva,Manejo de afectividad,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0066,Me siento fácilmente amenazado.,Autorregulación emocional y afectiva,Manejo de afectividad,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0097,Rara vez me enfado.,Autorregulación emocional y afectiva,Manejo de afectividad,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0098,Rara vez me irrito.,Autorregulación emocional y afectiva,Manejo de afectividad,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0023,Estoy relajado la mayor parte del tiempo.,Personalidad,Neuroticismo,0,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0038,Me altero con facilidad.,Personalidad,Neuroticismo,0,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0099,Rara vez me siento deprimido.,Personalidad,Neuroticismo,0,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0116,Tengo cambios de humor frecuentes.,Personalidad,Neuroticismo,0,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0001,A menudo ignoro mis sentimientos.,Autorregulación emocional y afectiva,Observación,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0002,A menudo me detengo a analizar cómo me siento.,Autorregulación emocional y afectiva,Observación,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0027,Generalmente estoy consciente de cómo me siento.,Autorregulación emocional y afectiva,Observación,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0070,No estoy en contacto con mis sentimientos.,Autorregulación emocional y afectiva,Observación,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0084,Noto mis emociones.,Autorregulación emocional y afectiva,Observación,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0088,Pienso en las causas de mis emociones.,Autorregulación emocional y afectiva,Observación,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0091,Presto mucha atención a mis sentimientos.,Autorregulación emocional y afectiva,Observación,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0095,Rara vez analizo mis emociones.,Autorregulación emocional y afectiva,Observación,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0100,Rara vez noto mis reacciones emocionales.,Autorregulación emocional y afectiva,Observación,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0101,Rara vez pienso en cómo me siento.,Autorregulación emocional y afectiva,Observación,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0006,Completo las tareas con éxito.,Toma de decisiones,Orientación a la solución,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0015,Enfrento los problemas directamente.,Toma de decisiones,Orientación a la solución,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0020,Espero a que otros tomen la iniciativa.,Toma de decisiones,Orientación a la solución,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0026,Formulo ideas con claridad.,Toma de decisiones,Orientación a la solución,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0039,Me asusto fácilmente.,Toma de decisiones,Orientación a la solución,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0043,Me desanimo fácilmente.,Toma de decisiones,Orientación a la solución,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0054,Me intimidan fácilmente.,Toma de decisiones,Orientación a la solución,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0078,No puedo decidirme.,Toma de decisiones,Orientación a la solución,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0093,Puedo resolver problemas complejos.,Toma de decisiones,Orientación a la solución,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0003,A menudo olvido poner las cosas en su lugar.,Toma de decisiones,Planificación,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0011,Dejo mis pertenencias tiradas.,Toma de decisiones,Planificación,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0012,Dejo un desorden en mi habitación.,Toma de decisiones,Planificación,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0030,Hago las tareas de inmediato.,Toma de decisiones,Planificación,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0035,Mantengo las cosas ordenadas.,Toma de decisiones,Planificación,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0048,Me gusta el orden.,Toma de decisiones,Planificación,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0051,Me gusta limpiar y organizar.,Toma de decisiones,Planificación,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0077,No me molesta el desorden.,Toma de decisiones,Planificación,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0083,No termino las cosas que empiezo.,Toma de decisiones,Planificación,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0094,Quiero que todo sea perfecto.,Toma de decisiones,Planificación,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0004,Amo a los niños.,Interación social,Respeto,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0010,Dedico tiempo a los demás.,Interación social,Respeto,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0016,Es difícil conocerme.,Interación social,Respeto,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0021,Estoy interesado en las personas.,Interación social,Respeto,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0046,Me encanta ayudar a otros.,Interación social,Respeto,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0052,Me intereso por el bienestar de los demás.,Interación social,Respeto,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0056,Me llevo bien con casi todos.,Interación social,Respeto,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0067,Muestro mi gratitud.,Interación social,Respeto,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0071,No estoy realmente interesado en los demás.,Interación social,Respeto,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0089,Pienso primero en los demás.,Interación social,Respeto,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0106,Sé cómo consolar a los demás.,Interación social,Respeto,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0110,Siento poca preocupación por los demás.,Interación social,Respeto,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0114,Soy indiferente a los sentimientos de los demás.,Interación social,Respeto,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0119,Tengo una buena palabra para todos.,Interación social,Respeto,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0007,Creo en una religión verdadera.,Interación social,Responsabilidad,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0008,Creo que las leyes deben ser estrictamente aplicadas.,Interación social,Responsabilidad,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0049,Me gusta estar de pie durante el himno nacional.,Interación social,Responsabilidad,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0061,Me opongo a la autoridad.,Interación social,Responsabilidad,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0103,Resisto a la autoridad.,Interación social,Responsabilidad,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0104,Respeto a la autoridad.,Interación social,Responsabilidad,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0105,Rompo las reglas.,Interación social,Responsabilidad,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0107,Sé cómo evadir las reglas.,Interación social,Responsabilidad,1,"5,4,3,2,5",Cuestionario básico para tutores
+IPIP0122,Trato de seguir las reglas.,Interación social,Responsabilidad,1,"1,2,3,4,5",Cuestionario básico para tutores
+IPIP0124,Uso malas palabras.,Interación social,Responsabilidad,1,"5,4,3,2,5",Cuestionario básico para tutores
+MIPQ0001,"En la escuela era bueno en matemáticas, física o química.",Inteligencias múltiples,Lógico-matemático,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0002,A menudo pienso en mis propios sentimientos y emociones y busco razones para ellos.,Inteligencias múltiples,Intrapersonal,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0003,Escribir es una forma natural para mí de expresarme.,Inteligencias múltiples,Lingüístico,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0004,"En la escuela, la geometría y varios tipos de tareas relacionadas con la percepción espacial eran más fáciles para mí que resolver ecuaciones.",Inteligencias múltiples,Espacial,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0005,Después de escuchar una melodía una o dos veces puedo cantarla o silbarla con bastante precisión.,Inteligencias múltiples,Musical,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0006,"Cuando escucho música, soy capaz de discernir instrumentos o reconocer melodías.",Inteligencias múltiples,Musical,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0007,Soy capaz de analizar mis propios motivos y formas de acción.,Inteligencias múltiples,Intrapersonal,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0008,Dedico tiempo a reflexionar regularmente sobre los temas importantes de la vida.,Inteligencias múltiples,Intrapersonal,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0009,"Incluso en compañía extraña, encuentro fácilmente a alguien con quien hablar.",Inteligencias múltiples,Interpersonal,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0010,Me llevo bien con diferentes tipos de personas.,Inteligencias múltiples,Interpersonal,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0011,Soy útil,Inteligencias múltiples,Interpersonal,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0012,Puedo trabajar y resolver problemas complejos.,Inteligencias múltiples,Lógico-matemático,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0013,Hago contacto fácilmente con otras personas.,Inteligencias múltiples,Interpersonal,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0014,"Puedo hacer fácilmente algo concreto con mis manos (por ejemplo, tejido y carpintería)",Inteligencias múltiples,Corporal-cinestésico,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0015,"Se me dan bien los juegos y la resolución de problemas, que requieren un pensamiento lógico.",Inteligencias múltiples,Lógico-matemático,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0016,"Recientemente he escrito algo de lo que estoy especialmente orgulloso, o por lo que he recibido reconocimiento.",Inteligencias múltiples,Lingüístico,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0017,Me gusta leer literatura psicológica o filosófica para aumentar mi autoconocimiento.,Inteligencias múltiples,Intrapersonal,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0018,Soy bueno para mostrar cómo hacer algo en la práctica.,Inteligencias múltiples,Corporal-cinestésico,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0019,Me resulta fácil conceptualizar patrones complejos y multidimensionales.,Inteligencias múltiples,Espacial,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0020,"Puedo imaginar fácilmente cómo se ve una superficie (parque, terreno, etc.) visto desde arriba",Inteligencias múltiples,Espacial,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0021,La aritmética mental es fácil para mí.,Inteligencias múltiples,Lógico-matemático,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0022,Puedo mantener fácilmente el ritmo cuando toco una melodía.,Inteligencias múltiples,Musical,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0023,Las metáforas y las expresiones verbales vívidas me ayudan a aprender de manera eficiente.,Inteligencias múltiples,Lingüístico,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0024,"En negociaciones y trabajo en grupo, soy capaz de apoyar al grupo para encontrar un consenso.",Inteligencias múltiples,Interpersonal,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0025,Noto inmediatamente si una melodía está desafinada.,Inteligencias múltiples,Musical,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0026,"Cuando leo, formo imágenes o diseños ilustrativos en mi mente.",Inteligencias múltiples,Espacial,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0027,Yo era bueno en las manualidades en la escuela.,Inteligencias múltiples,Corporal-cinestésico,0,"1,2,3,4,5",Cuestionario básico para tutores
+MIPQ0028,"En la escuela, los estudios en el idioma nativo fueron fáciles para mí.",Inteligencias múltiples,Lingüístico,0,"1,2,3,4,5",Cuestionario básico para tutores

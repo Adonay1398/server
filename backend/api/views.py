@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, time
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from marshmallow import ValidationError
@@ -8,12 +8,13 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, DjangoModelPer
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication   
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .modul.GenerateAnalysGroups import generar_reporte_por_grupo 
+from .modul.GenerateAnalysGroups import generar_reporte_por_grupo
 from .modul.analysis import calcular_scores
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 import threading
 from django.utils.timezone import now
+from django.utils.timezone import make_aware
 
 from .models import *
 from .serializers import *
@@ -86,11 +87,52 @@ class CreateTutorView(generics.CreateAPIView):
     """
     Crear un tutor.
     """
+    
+    permission_classes = [AllowAny]
     queryset = CustomUser.objects.all()
     serializer_class = TutorsRegistrationSerializer
-    permission_classes = [AllowAny]
+    @swagger_auto_schema(
+        operation_summary="Crear un tutor",
+        operation_description=(
+            "Este endpoint permite crear un nuevo tutor proporcionando los detalles requeridos. "
+            "El cuerpo de la solicitud debe contener los campos necesarios para registrar un tutor."
+        ),
+        request_body=TutorsRegistrationSerializer,
+        responses={
+            201: openapi.Response(
+                description="Tutor creado exitosamente.",
+                examples={
+                    "application/json": {
+                        "id": 1,
+                        "username": "tutor123",
+                        "email": "tutor@example.com",
+                        "first_name": "John",
+                        "last_name": "Doe"
+
+                    }
+                }
+            ),
+            400: openapi.Response(
+                description="Error en la solicitud.",
+                examples={
+                    "application/json": {
+                        "error": "Los datos proporcionados no son válidos."
+                    }
+                }
+            )
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        """
+        Maneja solicitudes POST para crear un tutor.
+
+        Respuesta:
+        - 201: Tutor creado exitosamente.
+        - 400: Error en los datos proporcionados.
+        """
+        return super().post(request, *args, **kwargs)
     
-    
+
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 # ==========================
@@ -147,7 +189,75 @@ class CuestionarioStatusView(APIView):
     Endpoint para obtener el estado de los cuestionarios relacionados con las aplicaciones asignadas.
     """
     permission_classes = [IsAuthenticated]
-
+    @swagger_auto_schema(
+        operation_summary="Obtener estado de los cuestionarios",
+        operation_description="Devuelve el estado de los cuestionarios relacionados con las aplicaciones asignadas al usuario autenticado.",
+        responses={
+            200: openapi.Response(
+                description="Estados de los cuestionarios clasificados en 'on_hold' y 'submited'.",
+                examples={
+                    "application/json": {
+                        "on_hold": {
+                            "current": [
+                                {
+                                    "cve_cuestionario": 1,
+                                    "nombre_corto": "Cuestionario 1",
+                                    "is_active": True,
+                                    "fecha_inicio": "2025-01-01",
+                                    "fecha_fin": "2025-01-15",
+                                    "fecha_limite": "2025-01-10",
+                                    "is_past": False,
+                                    "fecha_completado": None,
+                                    "aplicaciones": [{"cve_aplic": 101}],
+                                    "total_preguntas": 20,
+                                    "preguntas_contestadas": 10
+                                }
+                            ],
+                            "past": [
+                                {
+                                    "cve_cuestionario": 2,
+                                    "nombre_corto": "Cuestionario 2",
+                                    "is_active": False,
+                                    "fecha_inicio": "2025-01-01",
+                                    "fecha_fin": "2025-01-10",
+                                    "fecha_limite": "2025-01-09",
+                                    "is_past": True,
+                                    "fecha_completado": None,
+                                    "aplicaciones": [{"cve_aplic": 102}],
+                                    "total_preguntas": 15,
+                                    "preguntas_contestadas": 5
+                                }
+                            ]
+                        },
+                        "submited": [
+                            {
+                                "cve_cuestionario": 3,
+                                "nombre_corto": "Cuestionario 3",
+                                "is_active": True,
+                                "fecha_inicio": "2025-01-01",
+                                "fecha_fin": "2025-01-15",
+                                "fecha_limite": "2025-01-14",
+                                "is_past": False,
+                                "fecha_completado": "2025-01-12",
+                                "aplicaciones": [{"cve_aplic": 103}],
+                                "total_preguntas": 10,
+                                "preguntas_contestadas": 10
+                            }
+                        ]
+                    }
+                }
+            ),
+            404: openapi.Response(
+                description="No se encontraron aplicaciones asignadas.",
+                examples={
+                    "application/json": {
+                        "on_hold": {"current": [], "past": []},
+                        "submited": []
+                    }
+                }
+            ),
+        }
+    )
     def get(self, request, *args, **kwargs):
         user = request.user
 
@@ -168,19 +278,20 @@ class CuestionarioStatusView(APIView):
                     user=user, pregunta__cuestionario=cuestionario, cve_aplic=aplicacion
                 ).count()
 
-                is_past = aplicacion.fecha_fin and aplicacion.fecha_fin < timezone.now().date()
 
                 total_preguntas = cuestionario.preguntas.count()
                 asignacion = AsignacionCuestionario.objects.filter(
-                    usuario=user, cuestionario=cuestionario, aplicacion=aplicacion
+                    usuario=user, aplicacion=aplicacion
                 ).first()
+                
+                is_past = aplicacion.fecha_fin and make_aware(datetime.combine(aplicacion.fecha_fin, time.min)) < timezone.now()
 
                 cuestionario_data = {
                     "cve_cuestionario": cuestionario.cve_cuestionario,
                     "nombre_corto": cuestionario.nombre_corto,
                     "is_active": cuestionario.is_active,
-                    "fecha_inicio": cuestionario.fecha_inicio,
-                    "fecha_fin": cuestionario.fecha_fin,
+                    "fecha_inicio": aplicacion.fecha_inicion,
+                    "fecha_fin": aplicacion.fecha_fin.strftime("%Y-%m-%d") if aplicacion.fecha_fin else None,
                     "fecha_limite": aplicacion.fecha_limite,
                     "is_past": is_past,
                     "fecha_completado": asignacion.fecha_completado if asignacion else None,
@@ -332,16 +443,71 @@ class UserRelatedDataRetroView(APIView):
     Vista para obtener datos relacionados con el usuario y un cuestionario específico.
     """
     permission_classes = [IsAuthenticated]
-
+    @swagger_auto_schema(
+        operation_summary="Obtener datos relacionados con el usuario y un cuestionario",
+        operation_description=(
+            "Este endpoint devuelve datos relacionados con el usuario autenticado, "
+            "un cuestionario específico (`Cuestionario_id`) y una aplicación (`aplicacion_id`)."
+        ),
+        manual_parameters=[
+            openapi.Parameter(
+                "Cuestionario_id", openapi.IN_PATH, 
+                description="ID del cuestionario relacionado.", 
+                type=openapi.TYPE_INTEGER,
+                required=True
+            ),
+            openapi.Parameter(
+                "aplicacion_id", openapi.IN_PATH, 
+                description="ID de la aplicación relacionada.", 
+                type=openapi.TYPE_INTEGER,
+                required=True
+            )
+        ],
+        responses={
+            200: openapi.Response(
+                description="Datos relacionados con el usuario y el cuestionario.",
+                examples={
+                    "application/json": {
+                        "id": 42,
+                        "username": "johndoe",
+                        "email": "johndoe@example.com",
+                        "related_data": {
+                            "cuestionario_id": 10,
+                            "aplicacion_id": 101,
+                            "other_field": "value"
+                        }
+                    }
+                }
+            ),
+            401: openapi.Response(
+                description="No autorizado.",
+                examples={
+                    "application/json": {
+                        "detail": "Credenciales no válidas."
+                    }
+                }
+            )
+        }
+    )
     
     def get(self, request, Cuestionario_id,aplicacion_id ,*args, **kwargs):
-        # Serializar datos del usuario con el contexto adicional
+        """
+        Maneja solicitudes GET para obtener datos relacionados con el usuario y un cuestionario específico.
+
+        Parámetros:
+        - `Cuestionario_id` (int): ID del cuestionario relacionado.
+        - `aplicacion_id` (int): ID de la aplicación relacionada.
+
+        Respuesta:
+        - 200: Datos obtenidos exitosamente.
+        - 401: No autorizado.
+        """        
         serializer = UserRelatedDataSerializer(
-            instance=request.user,
-            context={
-                "request": request,
-                "Cuestionario_id": Cuestionario_id,
-                "aplicacion": aplicacion_id
+        instance=request.user,
+        context={
+            "request": request,
+            "Cuestionario_id": Cuestionario_id,
+            "aplicacion": aplicacion_id
             }
         )
 
@@ -373,14 +539,14 @@ class UserDataReporteView(APIView):
         Retorna la información relacionada al usuario autenticado.
         """
         # Obtener el ID del cuestionario desde los query params
-        cuestionario_id = request.data.get('cuestionario_id')
+        """ cuestionario_id = request.data.get('cuestionario_id')
         print(cuestionario_id)  # Verifica los parámetros enviados en la solicitud
 
         if not cuestionario_id:
             return Response(
                 {"error": "Debe proporcionar un ID de cuestionario válido."},
                 status=status.HTTP_400_BAD_REQUEST
-            )
+            ) """
 
         # Pasar el ID del cuestionario al serializador a través del contexto
         serializer = UserRelatedDataReporteSerializer(
@@ -398,22 +564,77 @@ class ResponderPreguntaView(APIView):
 
     permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
+        operation_summary="Guardar respuesta a una pregunta",
+        operation_description=(
+            "Este endpoint permite guardar la respuesta de un usuario a una pregunta específica en un cuestionario. "
+            "Si todas las preguntas han sido contestadas, se calcula automáticamente el score."
+        ),
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
+            required=["id_pregunta", "respuesta", "cve_aplic"],
             properties={
-                "id_pregunta": openapi.Schema(type=openapi.TYPE_STRING, description="ID de la pregunta."),
-                "respuesta": openapi.Schema(type=openapi.TYPE_STRING, description="Valor de la respuesta."),
-                "cve_aplic": openapi.Schema(type=openapi.TYPE_STRING, description="Clave de la aplicación.")
+                "id_pregunta": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="ID único de la pregunta a responder."
+                ),
+                "respuesta": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="El índice de la respuesta seleccionada, basado en el scorekey de la pregunta."
+                ),
+                "cve_aplic": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="Clave única de la aplicación del cuestionario."
+                ),
             },
-            required=["id_pregunta", "respuesta", "cve_aplic"]
         ),
         responses={
-            201: "Respuesta registrada.",
-            200: "Respuesta actualizada.",
-            400: "Error: Datos incompletos.",
-            404: "Error: Aplicación o pregunta no encontrada.",
-            500: "Error interno del servidor."
-        }
+            201: openapi.Response(
+                description="Respuesta guardada exitosamente.",
+                examples={
+                    "application/json": {
+                        "mensaje": "Respuesta guardada exitosamente.",
+                        "respuesta": {
+                            "id_pregunta": 1,
+                            "respuesta": 5,
+                            "cve_aplic": 101,
+                            "usuario": 1001
+                        }
+                    }
+                }
+            ),
+            400: openapi.Response(
+                description="Solicitud inválida.",
+                examples={
+                    "application/json": {
+                        "error": "Índice de respuesta fuera de rango para scorekey."
+                    }
+                }
+            ),
+            403: openapi.Response(
+                description="Acceso denegado.",
+                examples={
+                    "application/json": {
+                        "error": "No tiene acceso a esta aplicación."
+                    }
+                }
+            ),
+            404: openapi.Response(
+                description="No se encontró la pregunta o aplicación.",
+                examples={
+                    "application/json": {
+                        "error": "Pregunta no encontrada."
+                    }
+                }
+            ),
+            500: openapi.Response(
+                description="Error interno del servidor.",
+                examples={
+                    "application/json": {
+                        "error": "Error inesperado al procesar la solicitud."
+                    }
+                }
+            ),
+        },
     )
     def post(self, request, *args, **kwargs):
 
@@ -464,8 +685,8 @@ class ResponderPreguntaView(APIView):
                 asignacion = AsignacionCuestionario.objects.get(
                     usuario=user, cuestionario=pregunta.cuestionario, aplicacion=aplicacion
                 )
-                asignacion.completado = True
-                asignacion.fecha_completado = datetime.now()  # Guardar la fecha actual
+                asignacion.completado = True 
+                asignacion.fecha_completado = datetime.now().date() 
                 asignacion.save()
                 thread = threading.Thread(target=calcular_scores, args= (user, aplicacion,pregunta.cuestionario))
                 thread.start()
@@ -491,104 +712,41 @@ class ResponderPreguntaView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-
-
-""" 
-class JerarquiaView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, *args, **kwargs):
-        
-        user = request.user
-        group = user.groups.first()
-        nivel = request.query_params.get('nivel', None)
-        identificador = request.query_params.get('identificador', None)
-
-        if not group:
-            return Response({'error': 'El usuario no pertenece a ningún grupo'}, status=403)
-
-        # Verificar el grupo y aplicar las restricciones correspondientes
-        if group.name == 'Coordinador de Tutorias a Nivel Nacional':
-            # Puede ver regiones
-            if nivel == 'region':
-                regiones = Region.objects.all()
-                if identificador:
-                    regiones = regiones.filter(nacion_id=identificador)
-                serializer = RegionSerializer(regiones, many=True)
-                return Response(serializer.data)
-
-        elif group.name == 'Coordinador de Tutorias a Nivel Region':
-            # Puede ver institutos
-            if nivel == 'instituto':
-                institutos = Instituto.objects.filter(region__coordinador=user)
-                if identificador:
-                    institutos = institutos.filter(region_id=identificador)
-                serializer = InstitutoSerializer(institutos, many=True)
-                return Response(serializer.data)
-
-        elif group.name == 'Coordinador de Tutorias a Nivel Instituto':
-            # Puede ver departamentos
-            if nivel == 'departamento':
-                departamentos = Departamento.objects.filter(instituto__coordinador=user)
-                if identificador:
-                    departamentos = departamentos.filter(instituto_id=identificador)
-                serializer = DepartamentoSerializer(departamentos, many=True)
-                return Response(serializer.data)
-        elif group.name == 'Coordinador de Tutorias a Nivel Departamento':
-            if nivel == 'departamento': 
-                carrera =  Carrera.objects.filter(departamento__coordinador=user)
-                if identificador:
-                    carrera = carrera.filter(departamento_id=identificador)
-                serializer = CarreraSerializer(carrera, many=True)
-                return Response(serializer.data)
-        elif group.name == 'Coordinador de Plan de Estudios':
-            if nivel == 'plan_estudios':
-                plan_estudios = CustomUser.objects.all()
-                serializer = UserRelatedDataSerializer(plan_estudios, many=True)
-                return Response(serializer.data)
-        
-        return Response({'error': 'No autorizado'}, status=403)
-
- """
 class PreguntaView(APIView):
     """
     Vista para manejar solicitudes relacionadas con las preguntas de un cuestionario.
     """
     permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
+        operation_summary="Obtener preguntas pendientes de un cuestionario",
+        operation_description=(
+            "Este endpoint devuelve las preguntas pendientes de un cuestionario para el usuario autenticado. "
+            "Requiere proporcionar el ID del cuestionario (`cuestionario`) y la ID de la aplicación (`aplicacion`) "
+            "a través de los parámetros de consulta."
+        ),
         manual_parameters=[
             openapi.Parameter(
-                name="cuestionario",
-                in_=openapi.IN_QUERY,
+                "cuestionario", openapi.IN_QUERY,
+                description="ID del cuestionario.",
                 type=openapi.TYPE_INTEGER,
-                required=True,
-                description="ID del cuestionario."
+                required=True
             ),
             openapi.Parameter(
-                name="aplicacion",
-                in_=openapi.IN_QUERY,
+                "aplicacion", openapi.IN_QUERY,
+                description="ID de la aplicación.",
                 type=openapi.TYPE_INTEGER,
-                required=True,
-                description="Clave de la aplicación asociada."
-            ),
+                required=True
+            )
         ],
         responses={
             200: openapi.Response(
-                description="Lista de preguntas pendientes y observaciones.",
+                description="Lista de preguntas pendientes y observaciones de la aplicación.",
                 examples={
                     "application/json": {
-                        "Observaciones": "Esta es una observación de ejemplo para la aplicación.",
+                        "Observaciones": "Observaciones sobre la aplicación.",
                         "preguntas": [
-                            {
-                                "numero": 1,
-                                "id_pregunta": "P-101",
-                                "texto_pregunta": "¿Cuál es su nombre?"
-                            },
-                            {
-                                "numero": 2,
-                                "id_pregunta": "P-102",
-                                "texto_pregunta": "¿Cuál es su edad?"
-                            }
+                            {"numero": 1, "id_pregunta": 101, "texto_pregunta": "¿Cuál es tu color favorito?"},
+                            {"numero": 2, "id_pregunta": 102, "texto_pregunta": "¿Te gusta la música clásica?"}
                         ]
                     }
                 }
@@ -602,7 +760,7 @@ class PreguntaView(APIView):
                 }
             ),
             403: openapi.Response(
-                description="Acceso denegado.",
+                description="El usuario no tiene acceso a la aplicación.",
                 examples={
                     "application/json": {
                         "error": "No tiene acceso a esta aplicación."
@@ -610,10 +768,10 @@ class PreguntaView(APIView):
                 }
             ),
             404: openapi.Response(
-                description="Aplicación no encontrada.",
+                description="No se encontró la aplicación o el cuestionario.",
                 examples={
                     "application/json": {
-                        "error": "Aplicación no encontrada."
+                        "error": "No encontrado."
                     }
                 }
             )
@@ -668,21 +826,63 @@ class AsignarCuestionarioGrupoView(APIView):
     
     permission_classes = [AllowAny]
     @swagger_auto_schema(
+        operation_summary="Asignar cuestionario a un grupo",
+        operation_description=(
+            "Este endpoint asigna un cuestionario específico a todos los usuarios de un grupo. "
+            "Requiere proporcionar el ID del cuestionario, el ID del grupo, y el ID de la aplicación."
+        ),
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
+            required=["cuestionario", "grupo", "aplicacion"],
             properties={
-                "cuestionario": openapi.Schema(type=openapi.TYPE_INTEGER, description="ID del cuestionario."),
-                "grupo": openapi.Schema(type=openapi.TYPE_INTEGER, description="ID del grupo."),
-                "aplicacion": openapi.Schema(type=openapi.TYPE_INTEGER, description="ID de la aplicación."),
+                "cuestionario": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="ID del cuestionario que se desea asignar."
+                ),
+                "grupo": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="ID del grupo al que se desea asignar el cuestionario."
+                ),
+                "aplicacion": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="ID de la aplicación del cuestionario."
+                ),
             },
-            required=["cuestionario", "grupo", "aplicacion"]
         ),
         responses={
-            200: "Cuestionario asignado exitosamente al grupo.",
-            400: "Error en los parámetros proporcionados.",
-            404: "Cuestionario, grupo o aplicación no encontrados.",
-            500: "Error interno del servidor.",
-        }
+            200: openapi.Response(
+                description="Cuestionario asignado exitosamente.",
+                examples={
+                    "application/json": {
+                        "message": "Cuestionario asignado exitosamente al grupo"
+                    }
+                }
+            ),
+            400: openapi.Response(
+                description="Solicitud inválida.",
+                examples={
+                    "application/json": {
+                        "error": "Debe proporcionar cuestionario, grupo y aplicación"
+                    }
+                }
+            ),
+            404: openapi.Response(
+                description="No se encontró el cuestionario, grupo o aplicación.",
+                examples={
+                    "application/json": {
+                        "error": "Cuestionario no encontrado"
+                    }
+                }
+            ),
+            500: openapi.Response(
+                description="Error interno del servidor.",
+                examples={
+                    "application/json": {
+                        "error": "Error inesperado al procesar la solicitud."
+                    }
+                }
+            ),
+        },
     )
     def post(self, request, *args, **kwargs):
         cuestionario_id = request.data.get('cuestionario', None)
@@ -721,20 +921,62 @@ class AsignarCuestionarioUsuarioView(APIView):
     
     permission_classes = [AllowAny]
     @swagger_auto_schema(
+        operation_summary="Asignar cuestionario a usuario",
+        operation_description=(
+            "Este endpoint asigna un cuestionario específico a un usuario dentro de una aplicación específica. "
+            "Se debe proporcionar el ID del cuestionario, el ID del usuario y la clave de la aplicación (`cve_aplic`)."
+        ),
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
+            required=["cuestionario", "usuario", "cve_aplic"],
             properties={
-                "cuestionario": openapi.Schema(type=openapi.TYPE_INTEGER, description="ID del cuestionario."),
-                "usuario": openapi.Schema(type=openapi.TYPE_INTEGER, description="ID del usuario."),
-                "cve_aplic": openapi.Schema(type=openapi.TYPE_STRING, description="Clave de la aplicación."),
-            },
-            required=["cuestionario", "usuario", "cve_aplic"]
+                "cuestionario": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="ID del cuestionario a asignar."
+                ),
+                "usuario": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="ID del usuario al que se asignará el cuestionario."
+                ),
+                "cve_aplic": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="Clave única de la aplicación asociada."
+                )
+            }
         ),
         responses={
-            200: "Cuestionario asignado exitosamente al usuario.",
-            400: "Error en los parámetros proporcionados.",
-            404: "Cuestionario, usuario o aplicación no encontrados.",
-            500: "Error interno del servidor.",
+            200: openapi.Response(
+                description="Cuestionario asignado exitosamente al usuario.",
+                examples={
+                    "application/json": {
+                        "message": "Cuestionario asignado exitosamente al usuario"
+                    }
+                }
+            ),
+            400: openapi.Response(
+                description="Faltan parámetros obligatorios o son inválidos.",
+                examples={
+                    "application/json": {
+                        "error": "Debe proporcionar cuestionario, usuario y aplicación"
+                    }
+                }
+            ),
+            404: openapi.Response(
+                description="No se encontró uno de los recursos especificados.",
+                examples={
+                    "application/json": {
+                        "error": "Cuestionario no encontrado"
+                    }
+                }
+            ),
+            500: openapi.Response(
+                description="Error interno del servidor.",
+                examples={
+                    "application/json": {
+                        "error": "Descripción del error interno."
+                    }
+                }
+            )
         }
     )
     def post(self, request, *args, **kwargs):
@@ -770,149 +1012,6 @@ class AsignarCuestionarioUsuarioView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-class GenerateScoresView(APIView):
-        
-    permission_classes = [IsAuthenticated]
-    @swagger_auto_schema(
-            request_body=openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "cuestionario": openapi.Schema(
-                        type=openapi.TYPE_INTEGER,
-                        description="ID del cuestionario para el cual se generarán los scores."
-                    )
-                },
-                required=["cuestionario"]
-            ),
-            responses={
-                200: openapi.Response(
-                    description="Scores generados exitosamente.",
-                    examples={
-                        "application/json": {
-                            "message": "Análisis completo realizado exitosamente."
-                        }
-                    }
-                ),
-                400: openapi.Response(
-                    description="Error en los parámetros proporcionados.",
-                    examples={
-                        "application/json": {
-                            "error": "Debe proporcionar el ID del cuestionario."
-                        }
-                    }
-                ),
-                403: openapi.Response(
-                    description="Usuario no autorizado para realizar esta acción.",
-                    examples={
-                        "application/json": {
-                            "error": "El usuario no pertenece a ningún grupo asignado."
-                        }
-                    }
-                ),
-                404: openapi.Response(
-                    description="Cuestionario no encontrado.",
-                    examples={
-                        "application/json": {
-                            "error": "El cuestionario proporcionado no existe."
-                        }
-                    }
-                ),
-                500: openapi.Response(
-                    description="Error interno al calcular los scores.",
-                    examples={
-                        "application/json": {
-                            "error": "Error al calcular scores: detalle del error."
-                        }
-                    }
-                )
-            }
-        )
-    def post(self, request, *args, **kwargs):
-        usuario = request.user  # Usuario autenticado
-        cuestionario_id = request.data.get('cuestionario')
-        
-
-        try:
-            # 1. Validar si el usuario tiene un grupo asignado
-            grupo = usuario.groups.first()  # Obtener el primer grupo del usuario
-            if not grupo:
-                return Response(
-                    {"error": "El usuario no pertenece a ningún grupo asignado."},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            cuestionario = Cuestionario.objects.get(pk=cuestionario_id)
-
-            aplicacion = DatosAplicacion.objects.filter(cuestionario=cuestionario).last()
-            # 2. Si el grupo NO es "Tutores", redirigir a otra lógica
-            if grupo.name != "Tutores":
-                # Función o lógica alternativa para otros grupos
-                reporte= generar_reporte_por_grupo(usuario,aplicacion,cuestionario_id)
-                return Response(reporte, status=status.HTTP_200_OK)
-
-            # 3. Si el grupo ES "Tutores", continuar con el flujo existente
-            if not cuestionario_id:
-                return Response(
-                    {"error": "Debe proporcionar el ID del cuestionario."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            # Obtener el cuestionario
-            try:
-                cuestionario = Cuestionario.objects.get(pk=cuestionario_id)
-            except Cuestionario.DoesNotExist:
-                return Response(
-                    {"error": "El cuestionario proporcionado no existe."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-
-            # Validar si existe una asignación para el usuario y cuestionario
-            asignacion = AsignacionCuestionario.objects.filter(usuario=usuario, cuestionario=cuestionario).last()
-            if not asignacion:
-                return Response(
-                    {"error": "No se encontró una asignación para este usuario y cuestionario."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            # Validar si existe una aplicación asociada a la asignación
-            aplicacion = asignacion.aplicacion
-            if not aplicacion:
-                return Response(
-                    {"error": "No se encontró una aplicación asociada a la asignación."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            # Calcular los scores
-            try:
-                scores_constructos, scores_indicadores, reporte = calcular_scores(usuario, aplicacion)
-            except Exception as e:
-                return Response(
-                    {"error": f"Error al calcular scores: {str(e)}"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-
-            # Guardar los scores en la base de datos
-            for constructo_obj, score in scores_constructos.items():
-                if not isinstance(constructo_obj, Constructo):
-                    constructo_obj = Constructo.objects.get(pk=constructo_obj.pk)
-
-                ScoreConstructo.objects.update_or_create(
-                    aplicacion=aplicacion,
-                    usuario=usuario,
-                    constructo=constructo_obj,
-                    defaults={"score": score}
-                )
-
-            # Respuesta final
-            return Response(
-                {"message": "Análisis completo realizado exitosamente."},
-                status=status.HTTP_200_OK
-            )
-
-        except Exception as e:
-            return Response(
-                {"error": f"Error inesperado: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
 
 
 class ListarReportesAPIView(APIView):
@@ -928,278 +1027,12 @@ class ListarReportesAPIView(APIView):
     
 
 
-class GenerarVerReporteView(APIView):
-    """
-    Vista para generar o recuperar el reporte y los promedios según el usuario y el cuestionario.
-    """
-    permission_classes = [IsAuthenticated]
-    @swagger_auto_schema(
-            request_body=openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    # No se especifica body, ya que usa datos del usuario autenticado
-                }
-            ),
-            responses={
-                200: openapi.Response(
-                    description="Reporte y promedios generados exitosamente.",
-                    examples={
-                        "application/json": {
-                            "reporte": {
-                                "id": 1,
-                                "texto_fortalezas": "Fortalezas del grupo",
-                                "texto_oportunidades": "Oportunidades del grupo",
-                                "perfil": "Observaciones específicas"
-                            },
-                            "promedios_indicadores": [
-                                {"indicador": "Indicador 1", "promedio": 4.5},
-                                {"indicador": "Indicador 2", "promedio": 3.8}
-                            ],
-                            "promedios_constructos": [
-                                {"constructo": "Constructo 1", "promedio": 4.2},
-                                {"constructo": "Constructo 2", "promedio": 3.9}
-                            ]
-                        }
-                    }
-                ),
-                403: openapi.Response(
-                    description="El usuario no pertenece a un grupo válido.",
-                    examples={
-                        "application/json": {
-                            "error": "El usuario no pertenece a ningún grupo."
-                        }
-                    }
-                ),
-                404: openapi.Response(
-                    description="No se encontró un reporte válido.",
-                    examples={
-                        "application/json": {
-                            "error": "No se encontró un reporte válido para el nivel especificado."
-                        }
-                    }
-                ),
-                500: openapi.Response(
-                    description="Error interno del servidor.",
-                    examples={
-                        "application/json": {
-                            "error": "Error inesperado: detalle del error."
-                        }
-                    }
-                )
-            }
-        )
-    def post(self, request, *args, **kwargs):
-        usuario = request.user
-        grupo = usuario.groups.first()
 
-        if not grupo:
-            return Response({"error": "El usuario no pertenece a ningún grupo."}, status=403)
-
-        grupo_valido = {
-            "Coordinador de Plan de Estudios": "plan_estudios",
-            "Coordinador de Tutorias por Departamento": "departamento",
-            "Coordinador de Tutorias por Institucion": "instituto",
-            "Coordinador de Tutorias a Nivel Regional": "region",
-            "Coordinador de Tutorias a Nivel Nacional": "nacion",
-        }
-
-        grupo_nombre = grupo.name if grupo else None
-
-        if grupo_nombre not in grupo_valido:
-            return Response({"error": "El grupo del usuario no es válido."}, status=403)
-
-        nivel = grupo.name
-
-        try:
-            reporte = Reporte.objects.filter(
-                nivel=nivel,
-                referencia_id=usuario.id,
-                usuario_generador=usuario
-            ).order_by('-fecha_generacion').first()
-
-            if not reporte:
-                return Response({"error": "No se encontró un reporte válido para el nivel especificado y la referencia proporcionada."}, status=404)
-
-            promedios_indicadores = IndicadorPromedio.objects.filter(
-                nivel=nivel,
-                grupo=grupo
-            ).values('indicador__nombre', 'promedio')
-
-            promedios_constructos = ScoreConstructo.objects.filter(
-                usuario__groups=grupo
-            ).values('constructo__descripcion').annotate(promedio=Avg('score'))
-
-            response_data = {
-                "reporte": {
-                    "id": reporte.id,
-                    "texto_fortalezas": reporte.texto_fortalezas,
-                    "texto_oportunidades": reporte.texto_oportunidades,
-                    
-                    "perfil": reporte.observaciones,
-                },
-                "promedios_indicadores": [
-                    {"indicador": prom["indicador__nombre"], "promedio": prom["promedio"]}
-                    for prom in promedios_indicadores
-                ],
-                "promedios_constructos": [
-                    {"constructo": prom["constructo__descripcion"], "promedio": prom["promedio"]}
-                    for prom in promedios_constructos
-                ]
-            }
-
-            return Response(response_data, status=200)
-
-        except Exception as e:
-            return Response({"error": f"Error inesperado: {str(e)}"}, status=500)
-
-class GenerarRetroalimentacionView(APIView):
-    """
-    Vista para generar la retroalimentación basada en RetroChatGPT,
-    promedios de constructos e indicadores.
-    """
-    permission_classes = [IsAuthenticated]
-    @swagger_auto_schema(
-    manual_parameters=[],
-    responses={
-        200: openapi.Response(
-            description="Reporte y promedios generados exitosamente.",
-            examples={
-                "application/json": {
-                    "reporte": {
-                        "id": 1,
-                        "texto_fortalezas": "Fortalezas del grupo",
-                        "texto_oportunidades": "Oportunidades del grupo",
-                        "perfil": "Observaciones específicas"
-                    },
-                    "promedios_indicadores": [
-                        {"indicador": "Indicador 1", "promedio": 4.5},
-                        {"indicador": "Indicador 2", "promedio": 3.8}
-                    ],
-                    "promedios_constructos": [
-                        {"constructo": "Constructo 1", "promedio": 4.2},
-                        {"constructo": "Constructo 2", "promedio": 3.9}
-                    ]
-                }
-            }
-        ),
-        403: openapi.Response(
-            description="El usuario no pertenece a un grupo válido.",
-            examples={
-                "application/json": {
-                    "error": "El usuario no pertenece a ningún grupo."
-                }
-            }
-        ),
-        404: openapi.Response(
-            description="No se encontró un reporte válido.",
-            examples={
-                "application/json": {
-                    "error": "No se encontró un reporte válido para el nivel especificado."
-                }
-            }
-        ),
-        500: openapi.Response(
-            description="Error interno del servidor.",
-            examples={
-                "application/json": {
-                    "error": "Error inesperado: detalle del error."
-                }
-            }
-        )
-    }
-)
-    def get(self, request, *args, **kwargs):
-        usuario = request.user
-        grupo = usuario.groups.first()
-
-        if not grupo:
-            return Response({"error": "El usuario no pertenece a ningún grupo."}, status=403)
-
-        try:
-            # Obtener la retroalimentación más reciente para el usuario autenticado
-            
-            retro = RetroChatGPT.objects.filter(
-                usuario=usuario
-            ).order_by('-cve_retro').first()
-
-            if not retro:
-                return Response({"error": "No se encontró retroalimentación para el usuario."}, status=404)
-
-            # Obtener los promedios de indicadores
-            promedios_indicadores = ScoreIndicador.objects.filter(
-                usuario=usuario
-            ).values('indicador__nombre').annotate(promedio=Avg('score')).distinct()
-
-            # Obtener los promedios de constructos
-            promedios_constructos = ScoreConstructo.objects.filter(
-                usuario=usuario
-            ).values('constructo__descripcion').annotate(promedio=Avg('score')).distinct()
-
-            # Construir la respuesta
-            response_data = {
-                "retroalimentacion": {
-                    "fortalezas": retro.texto1,
-                    "oportunidades": retro.texto2,
-                    #"observaciones": retro.texto3,
-                    #"archivo_pdf": request.build_absolute_uri(retro.pdf_file.url) if retro.pdf_file else None,
-                },
-                "promedios_indicadores": [
-                    {"indicador": prom["indicador__nombre"], "promedio": prom["promedio"]}
-                    for prom in promedios_indicadores
-                ],
-                    "promedios_constructos": [
-                        {"constructo": prom["constructo__descripcion"], "promedio": prom["promedio"]}
-                        for prom in promedios_constructos
-                    ]
-            }
-            return Response(response_data, status=200)
-
-        except Exception as e:
-            return Response({"error": f"Error inesperado: {str(e)}"}, status=500)
-        
-        
+"""         
 class NavegarNivelesAPIView(APIView):
-    """
+    
     Endpoint para navegar entre niveles jerárquicos.
-    """
-    @swagger_auto_schema(
-        manual_parameters=[
-            openapi.Parameter(
-                'nivel', openapi.IN_QUERY, 
-                description="Nivel actual desde el cual se navega. Valores posibles: 'region', 'instituto', 'departamento', 'carrera'.",
-                type=openapi.TYPE_STRING,
-                required=True
-            ),
-            openapi.Parameter(
-                'id', openapi.IN_QUERY, 
-                description="ID del elemento actual para consultar sus elementos inferiores.",
-                type=openapi.TYPE_STRING,
-                required=False
-            )
-        ],
-        responses={
-            200: openapi.Response(
-                description="Lista de elementos del nivel inferior.",
-                examples={
-                    "application/json": {
-                        "nivel": "instituto",
-                        "datos": [
-                            {"id": "123", "nombre": "Instituto ABC"},
-                            {"id": "124", "nombre": "Instituto XYZ"}
-                        ]
-                    }
-                }
-            ),
-            400: openapi.Response(
-                description="Error en los parámetros proporcionados.",
-                examples={
-                    "application/json": {
-                        "error": "El parámetro 'nivel' es obligatorio."
-                    }
-                }
-            )
-        }
-    )
+    
     def get(self, request, *args, **kwargs):
         # Obtener parámetros de la consulta
         nivel = request.query_params.get('nivel')
@@ -1237,40 +1070,34 @@ class NavegarNivelesAPIView(APIView):
         else:
             return Response({"error": f"Nivel '{nivel}' no válido."}, status=400)
 
-
+ """
 class InstitutoCarrerasView(APIView):
     """
     Endpoint para devolver la lista de institutos con solo el nombre y sus carreras.
     """
     permission_classes = [AllowAny]  # Opcional, si necesitas autenticación
     @swagger_auto_schema(
+        operation_summary="Listar institutos y carreras",
+        operation_description="Este endpoint devuelve una lista de todos los institutos junto con sus respectivas carreras.",
         responses={
             200: openapi.Response(
-                description="Lista de institutos con sus carreras.",
+                description="Lista de institutos y carreras recuperada exitosamente.",
                 examples={
                     "application/json": [
                         {
                             "id": 1,
-                            "nombre_completo": "Instituto Tecnológico de Ejemplo",
+                            "nombre": "Instituto Tecnológico A",
                             "carreras": [
-                                {
-                                    "id": 101,
-                                    "nombre": "Ingeniería en Sistemas Computacionales"
-                                },
-                                {
-                                    "id": 102,
-                                    "nombre": "Ingeniería Civil"
-                                }
+                                {"id": 1, "nombre": "Ingeniería en Sistemas"},
+                                {"id": 2, "nombre": "Ingeniería Civil"}
                             ]
                         },
                         {
                             "id": 2,
-                            "nombre_completo": "Instituto Tecnológico Nacional",
+                            "nombre": "Instituto Tecnológico B",
                             "carreras": [
-                                {
-                                    "id": 201,
-                                    "nombre": "Licenciatura en Administración"
-                                }
+                                {"id": 3, "nombre": "Ingeniería Mecánica"},
+                                {"id": 4, "nombre": "Ingeniería Eléctrica"}
                             ]
                         }
                     ]
@@ -1280,10 +1107,10 @@ class InstitutoCarrerasView(APIView):
                 description="Error interno del servidor.",
                 examples={
                     "application/json": {
-                        "error": "Error inesperado: detalle del error."
+                        "error": "Error al recuperar los institutos."
                     }
                 }
-            )
+            ),
         }
     )
     def get(self, request, *args, **kwargs):
@@ -1295,6 +1122,47 @@ class CascadeUploadView(APIView):
     """
     Vista para registrar o actualizar Región, Instituto, Departamento y Carrera por campos planos.
     """
+    
+
+    @swagger_auto_schema(
+        operation_summary="Registrar o actualizar cascada de datos jerárquicos",
+        operation_description=(
+            "Este endpoint permite registrar o actualizar una región, instituto, "
+            "departamento y carrera en un solo llamado utilizando campos planos."
+        ),
+        request_body= CascadeUploadSerializer,
+        responses={
+            200: openapi.Response(
+                description="Registros actualizados o creados con éxito.",
+                examples={
+                    "application/json": {
+                        "message": "Registros actualizados o creados con éxito.",
+                        "region": {"id": 1, "nombre": "Región Norte"},
+                        "instituto": {"id": 10, "nombre_completo": "Instituto Tecnológico X"},
+                        "departamento": {"id": 20, "nombre": "Departamento de Ciencias Básicas"},
+                        "carrera": {"id": 30, "nombre": "Ingeniería en Sistemas Computacionales"}
+                    }
+                }
+            ),
+            400: openapi.Response(
+                description="Error de validación en los datos enviados.",
+                examples={
+                    "application/json": {
+                        "region_nombre": ["Este campo es obligatorio."],
+                        "instituto_nombre": ["Este campo es obligatorio."]
+                    }
+                }
+            ),
+            500: openapi.Response(
+                description="Error interno del servidor.",
+                examples={
+                    "application/json": {
+                        "error": "Descripción del error interno."
+                    }
+                }
+            )
+        }
+    )
     def post(self, request, *args, **kwargs):
         serializer = CascadeUploadSerializer(data=request.data)
         if not serializer.is_valid():
@@ -1343,8 +1211,63 @@ class CerrarAplicacionCuestionarioView(APIView):
     """
     Endpoint para cerrar una aplicación de un cuestionario.
     """
-    permission_classes = [IsAuthenticated]
-
+    #permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary="Cerrar una aplicación de cuestionario",
+        operation_description=(
+            "Este endpoint cierra una aplicación de cuestionario especificando su clave única (`cve_aplic`). "
+            "Además, genera un reporte en segundo plano."
+        ),
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["cve_aplic"],
+            properties={
+                "cve_aplic": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="Clave única de la aplicación que se desea cerrar."
+                ),
+                "Cuestionario_id": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="ID del cuestionario asociado a la aplicación."
+                )
+            }
+        ),
+        responses={
+            200: openapi.Response(
+                description="La aplicación fue cerrada exitosamente.",
+                examples={
+                    "application/json": {
+                        "message": "La aplicación con clave 123 ha sido cerrada exitosamente.",
+                        "fecha_cierre": "2025-01-02"
+                    }
+                }
+            ),
+            400: openapi.Response(
+                description="Solicitud incorrecta.",
+                examples={
+                    "application/json": {
+                        "error": "El campo 'cve_aplic' es obligatorio."
+                    }
+                }
+            ),
+            404: openapi.Response(
+                description="Aplicación no encontrada.",
+                examples={
+                    "application/json": {
+                        "error": "Aplicación no encontrada."
+                    }
+                }
+            ),
+            500: openapi.Response(
+                description="Error interno del servidor.",
+                examples={
+                    "application/json": {
+                        "error": "Descripción detallada del error interno."
+                    }
+                }
+            )
+        }
+    )
     def post(self, request, *args, **kwargs):
         """
         Maneja solicitudes POST para cerrar una aplicación de un cuestionario.
@@ -1358,14 +1281,14 @@ class CerrarAplicacionCuestionarioView(APIView):
         - 400: La aplicación ya está cerrada o no se puede cerrar.
         """
         cve_aplic = request.data.get('cve_aplic')
-
+        Cuestionario_id = request.data.get('Cuestionario_id')
         if not cve_aplic:
             return Response({"error": "El campo 'cve_aplic' es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             # Buscar la aplicación
             aplicacion = DatosAplicacion.objects.get(cve_aplic=cve_aplic)
-
+            # Asumiendo que la relación es ForeignKey
             # Verificar si la aplicación ya está cerrada
             if aplicacion.fecha_fin and aplicacion.fecha_fin < now().date():
                 return Response({"error": "La aplicación ya está cerrada."}, status=status.HTTP_400_BAD_REQUEST)
@@ -1373,7 +1296,7 @@ class CerrarAplicacionCuestionarioView(APIView):
             # Marcar la aplicación como cerrada
             aplicacion.fecha_fin = now().date()
             aplicacion.save()
-            theread = threading.Thread(target=generar_reporte_por_grupo, args=(request.user, aplicacion))
+            theread = threading.Thread(target=generar_reporte_por_grupo, args=(request.user, aplicacion, Cuestionario_id))
             theread.start()
             
             return Response(
@@ -1389,3 +1312,114 @@ class CerrarAplicacionCuestionarioView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+class RelacionCuestionarioAplicacionView(APIView):
+    """
+    Endpoint para gestionar la relación entre aplicaciones y cuestionarios.
+    """
+    @swagger_auto_schema(
+        operation_summary="Crear relación entre aplicación y cuestionario",
+        operation_description="Este endpoint crea una relación entre una aplicación y un cuestionario.",
+        request_body=RelacionCuestionarioAplicacionSerializer,
+        responses={
+            201: openapi.Response(
+                description="Relación creada exitosamente.",
+                examples={
+                    "application/json": {
+                        "success": True,
+                        "message": "Relación creada exitosamente."
+                    }
+                }
+            ),
+            400: "Datos inválidos. Por favor, verifique los errores."
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = RelacionCuestionarioAplicacionSerializer(data=request.data)
+        if serializer.is_valid():
+            result = serializer.create(serializer.validated_data)
+            return Response(result, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, *args, **kwargs):
+        serializer = RelacionCuestionarioAplicacionSerializer(data=request.data)
+        if serializer.is_valid():
+            result = serializer.delete(serializer.validated_data)
+            return Response(result, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ReportePorAplicacionView(APIView):
+    """
+    Endpoint para obtener los campos específicos de la tabla Reporte basado en la clave de aplicación.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    @swagger_auto_schema(
+        operation_summary="Obtener reporte por aplicación",
+        operation_description="Este endpoint devuelve los campos específicos del reporte basado en la clave de la aplicación proporcionada.",
+        manual_parameters=[
+            openapi.Parameter(
+                'cve_aplic',
+                openapi.IN_PATH,
+                description="Clave única de la aplicación.",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            )
+        ],
+        responses={
+            200: openapi.Response(
+                description="Reporte encontrado.",
+                examples={
+                    "application/json": {
+                        "texto_fortalezas": "Texto de fortalezas del reporte.",
+                        "texto_oportunidades": "Texto de oportunidades del reporte.",
+                        "observaciones": "Observaciones adicionales del reporte.",
+                        "datos_promedios": {
+                            "Inteligencias múltiples": {
+                                "prom_score": 60,
+                                "constructos": [
+                                    {"nombre": "Musical", "prom_score": 43},
+                                    {"nombre": "Lógico-matemático", "prom_score": 70}
+                                ]
+                            },
+                            "Personalidad": {
+                                "prom_score": 75,
+                                "constructos": [
+                                    {"nombre": "Imaginación", "prom_score": 62},
+                                    {"nombre": "Intelecto", "prom_score": 62}
+                                ]
+                            }
+                        }
+                    }
+                }
+            ),
+            404: "Reporte no encontrado.",
+            500: "Error interno del servidor."
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        # Obtener la clave de la aplicación desde los parámetros de la URL
+        cve_aplic = kwargs.get('cve_aplic')
+        try:
+            # Verificar si la aplicación existe
+            aplicacion = DatosAplicacion.objects.get(pk=cve_aplic)
+
+            # Buscar el reporte asociado a la aplicación
+            reporte = Reporte.objects.filter(referencia_id=aplicacion.cve_aplic).first()
+
+            if not reporte:
+                return Response({"error": "Reporte no encontrado para esta aplicación."}, status=status.HTTP_404_NOT_FOUND)
+
+
+            # Devolver los campos solicitados
+            return Response({
+                "texto_fortalezas": reporte.texto_fortalezas,
+                "texto_oportunidades": reporte.texto_oportunidades,
+                "observaciones": reporte.observaciones,
+                "datos_promedios": reporte.datos_promedios,
+            }, status=status.HTTP_200_OK)
+
+        except DatosAplicacion.DoesNotExist:
+            return Response({"error": "Aplicación no encontrada."}, status=status.HTTP_404_NOT_FOUND)

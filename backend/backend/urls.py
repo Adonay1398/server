@@ -47,12 +47,13 @@ urlpatterns = [
     path('users/', CustomUserListView.as_view(), name='user-list'),
     path('user/personal-info/', CustomUserDetailView.as_view(), name='user-detail'),
     path('api/user-related-data-retro/<int:Cuestionario_id>/<int:aplicacion_id>/', UserRelatedDataRetroView.as_view(), name='user-related-data'),
-    path('user/related-data-reporte/', UserDataReporteView.as_view(), name='user-related-data'),
+    #path('user/related-data-reporte/', UserDataReporteView.as_view(), name='user-related-data'),
+    path('api/reporte-aplicacion/<int:cve_aplic>/', ReportePorAplicacionView.as_view(), name='reporte-por-aplicacion'),
 
     # Cuestionarios
     path('cuestionario/', CuestionarioListView.as_view(), name='cuestionario-list'),
     path('preguntas/', PreguntaView.as_view(), name='preguntas-por-cuestionario'),
-    path('generate/', GenerateScoresView.as_view(), name='generate-score'),
+    #path('generate/', GenerateScoresView.as_view(), name='generate-score'),
     path('api/cuestionarios/status/', CuestionarioStatusView.as_view(), name='cuestionario-status'),
     # Constructos and Scores
     #path('constructo/', ConstructoListViews.as_view(), name='constructo-list'),
@@ -66,7 +67,8 @@ urlpatterns = [
     path('institutos-carreras/', InstitutoCarrerasView.as_view(), name='institutos-carreras'),
     path('api/cascade-upload/', CascadeUploadView.as_view(), name='cascade-upload'),
 
-    
+    path('api/relacion-cuestionario-aplicacion/', RelacionCuestionarioAplicacionView.as_view(), name='relacion-cuestionario-aplicacion'),
+
     #path('api/niveles/', NavegarNivelesAPIView.as_view(), name='navegar-niveles'),
 
     path('api/asignar-cuestionario/', AsignarCuestionarioUsuarioView.as_view(), name='asignar-cuestionario'),

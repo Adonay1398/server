@@ -49,7 +49,7 @@ def make_analysis(
         'nacional':'reporte nacional'
     }
     #print(data)
-    data = {indicador["nombre"]: indicador["prom_score"] for indicador in data.get("indicador", [])}
+    #data = {indicador["nombre"]: indicador["prom_score"] for indicador in data.get("indicador", [])}
     n = 1 if report == 'retroalimentación' else 2
     #n=2 
     response_dict = {}

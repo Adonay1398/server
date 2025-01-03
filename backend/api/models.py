@@ -4,7 +4,7 @@ from datetime import date
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.utils import timezone
-
+from django.db.models import JSONField
 
 class Region (models.Model):
     cve_region = models.AutoField(primary_key=True)
@@ -230,6 +230,10 @@ class Reporte(models.Model):
     fecha_generacion = models.DateTimeField(default=timezone.now)
     observaciones = models.TextField(blank=True, null=True)  # Asegúrate de que esta línea esté presente
     usuario_generador = models.ForeignKey(CustomUser, on_delete=models.CASCADE, blank=True, null=True)
+    #promedio_indicadores = models.TextField(blank=True, null=True)
+    #promedio_constructos = models.TextField(blank=True, null=True)
+    datos_promedios = models.JSONField(blank=True, null=True)  # Para guardar los promedios calculados
+
 
     def __str__(self):
         return f"Reporte {self.id} - {self.fecha_generacion}"
@@ -287,8 +291,8 @@ class AsignacionCuestionario(models.Model):
     cuestionario = models.ForeignKey(Cuestionario, on_delete=models.CASCADE, related_name="asignaciones")
     aplicacion = models.ForeignKey(DatosAplicacion, on_delete=models.CASCADE, related_name="asignaciones")
     completado = models.BooleanField(default=False)
-    fecha_asignacion = models.DateTimeField(auto_now_add=True)
-    fecha_completado = models.DateTimeField(blank=True, null=True)
+    fecha_asignacion = models.DateField(auto_now_add=True)
+    fecha_completado = models.DateField(blank=True, null=True)
 
     class Meta:
         unique_together = ('usuario', 'cuestionario', 'aplicacion')  # Evitar duplicados
