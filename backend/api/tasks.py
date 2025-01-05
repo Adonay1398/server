@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 DEFAULT_EMAILS = {
-    "carrera": "le19080170@merida.tecnm.mx",
+    "carrera": "le1908017@merida.tecnm.mx",
     "departamento": "departamento_user@example.com",
     "institucion": "institucion_user@example.com",
     "region": "region_user@example.com",

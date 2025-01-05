@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from marshmallow import ValidationError
 from rest_framework.response import Response
 from rest_framework import generics, status
-from rest_framework.permissions import AllowAny, IsAuthenticated, DjangoModelPermissions
+from rest_framework.permissions import AllowAny, IsAuthenticated, DjangoModelPermissions, IsAdminUser
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication   
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -15,7 +15,7 @@ from drf_yasg import openapi
 import threading
 from django.utils.timezone import now
 from django.utils.timezone import make_aware
-
+from .permissions import IsAuthorizedUser
 from .models import *
 from .serializers import *
 #from .utils import calcular_scores_jerarquicos, calcular_scores_tutor
@@ -824,21 +824,18 @@ class PreguntaView(APIView):
 
 class AsignarCuestionarioGrupoView(APIView):
     
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminUser]
     @swagger_auto_schema(
-        operation_summary="Asignar cuestionario a un grupo",
+        operation_summary="Asignar la aplicaciond de uno o mas cuestionarios a un grupo",
         operation_description=(
-            "Este endpoint asigna un cuestionario específico a todos los usuarios de un grupo. "
-            "Requiere proporcionar el ID del cuestionario, el ID del grupo, y el ID de la aplicación."
+            "Este endpoint asigna uno o mas cuestionarios específico a todos los usuarios de un grupo. "
+            "Requiere proporcionar  el ID del grupo, y el ID de la aplicación."
         ),
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            required=["cuestionario", "grupo", "aplicacion"],
+            required=[ "grupo", "aplicacion"],
             properties={
-                "cuestionario": openapi.Schema(
-                    type=openapi.TYPE_INTEGER,
-                    description="ID del cuestionario que se desea asignar."
-                ),
+                
                 "grupo": openapi.Schema(
                     type=openapi.TYPE_INTEGER,
                     description="ID del grupo al que se desea asignar el cuestionario."
@@ -851,10 +848,10 @@ class AsignarCuestionarioGrupoView(APIView):
         ),
         responses={
             200: openapi.Response(
-                description="Cuestionario asignado exitosamente.",
+                description="aplicacion asignado exitosamente.",
                 examples={
                     "application/json": {
-                        "message": "Cuestionario asignado exitosamente al grupo"
+                        "message": "aplicacion asignado exitosamente al grupo"
                     }
                 }
             ),
@@ -862,12 +859,12 @@ class AsignarCuestionarioGrupoView(APIView):
                 description="Solicitud inválida.",
                 examples={
                     "application/json": {
-                        "error": "Debe proporcionar cuestionario, grupo y aplicación"
+                        "error": "Debe proporcionar , grupo y aplicación"
                     }
                 }
             ),
             404: openapi.Response(
-                description="No se encontró el cuestionario, grupo o aplicación.",
+                description="No se encontró el  grupo o aplicación.",
                 examples={
                     "application/json": {
                         "error": "Cuestionario no encontrado"
@@ -885,31 +882,38 @@ class AsignarCuestionarioGrupoView(APIView):
         },
     )
     def post(self, request, *args, **kwargs):
-        cuestionario_id = request.data.get('cuestionario', None)
+        #cuestionario_id = request.data.get('cuestionario', None)
         grupo_id = request.data.get('grupo', None)
         aplicacion_id = request.data.get('aplicacion', None)
 
-        if not cuestionario_id or not grupo_id or not aplicacion_id:
+        """ if not cuestionario_id or not grupo_id or not aplicacion_id:
             return Response({"error": "Debe proporcionar cuestionario, grupo y aplicación"}, status=status.HTTP_400_BAD_REQUEST)
-
+        """
         try:
-            # Obtener cuestionario, grupo y aplicación
-            cuestionario = Cuestionario.objects.get(pk=cuestionario_id)
+            # Obtener grupo, aplicación y cuestionarios
             grupo = Group.objects.get(pk=grupo_id)
             aplicacion = DatosAplicacion.objects.get(pk=aplicacion_id)
+            
+            # Obtener todos los cuestionarios asociados a la aplicación
+            cuestionarios = aplicacion.cuestionario.all()  # Obtiene todos los cuestionarios
+
+            if not cuestionarios.exists():
+                return Response({"error": "No se encontraron cuestionarios para esta aplicación"}, status=status.HTTP_404_NOT_FOUND)
+
+            # Obtener los usuarios que pertenecen al grupo
             usuarios = CustomUser.objects.filter(groups=grupo)
 
+            # Asignar todos los cuestionarios a cada usuario del grupo
             for usuario in usuarios:
-                AsignacionCuestionario.objects.get_or_create(
-                    usuario=usuario,
-                    cuestionario=cuestionario,
-                    aplicacion=aplicacion
-                )
+                for cuestionario in cuestionarios:
+                    AsignacionCuestionario.objects.get_or_create(
+                        usuario=usuario,
+                        cuestionario=cuestionario,
+                        aplicacion=aplicacion
+                    )
+            return Response({"message": "Aplicacion de cuestionario asignado exitosamente al grupo"}, status=status.HTTP_200_OK)
 
-            return Response({"message": "Cuestionario asignado exitosamente al grupo"}, status=status.HTTP_200_OK)
-
-        except Cuestionario.DoesNotExist:
-            return Response({"error": "Cuestionario no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+        
         except Group.DoesNotExist:
             return Response({"error": "Grupo no encontrado"}, status=status.HTTP_404_NOT_FOUND)
         except DatosAplicacion.DoesNotExist:
@@ -919,21 +923,18 @@ class AsignarCuestionarioGrupoView(APIView):
 
 class AsignarCuestionarioUsuarioView(APIView):
     
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminUser]
     @swagger_auto_schema(
-        operation_summary="Asignar cuestionario a usuario",
+        operation_summary="Asignar una aplicacion de un o mas cuestionarios a usuario",
         operation_description=(
-            "Este endpoint asigna un cuestionario específico a un usuario dentro de una aplicación específica. "
-            "Se debe proporcionar el ID del cuestionario, el ID del usuario y la clave de la aplicación (`cve_aplic`)."
+            "Este endpoint asigna una aplicacion de uno o mas cuestionarios   a un usuario dentro de una aplicación específica. "
+            "Se debe proporcionar  el ID del usuario y la clave de la aplicación (`cve_aplic`)."
         ),
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            required=["cuestionario", "usuario", "cve_aplic"],
+            required=[ "usuario", "cve_aplic"],
             properties={
-                "cuestionario": openapi.Schema(
-                    type=openapi.TYPE_INTEGER,
-                    description="ID del cuestionario a asignar."
-                ),
+                
                 "usuario": openapi.Schema(
                     type=openapi.TYPE_INTEGER,
                     description="ID del usuario al que se asignará el cuestionario."
@@ -946,10 +947,10 @@ class AsignarCuestionarioUsuarioView(APIView):
         ),
         responses={
             200: openapi.Response(
-                description="Cuestionario asignado exitosamente al usuario.",
+                description="aplicacion de Cuestionario asignado exitosamente al usuario.",
                 examples={
                     "application/json": {
-                        "message": "Cuestionario asignado exitosamente al usuario"
+                        "message": "aplicacion de Cuestionario asignado exitosamente al usuario"
                     }
                 }
             ),
@@ -957,7 +958,7 @@ class AsignarCuestionarioUsuarioView(APIView):
                 description="Faltan parámetros obligatorios o son inválidos.",
                 examples={
                     "application/json": {
-                        "error": "Debe proporcionar cuestionario, usuario y aplicación"
+                        "error": "Debe proporcionar  usuario y aplicación"
                     }
                 }
             ),
@@ -965,7 +966,7 @@ class AsignarCuestionarioUsuarioView(APIView):
                 description="No se encontró uno de los recursos especificados.",
                 examples={
                     "application/json": {
-                        "error": "Cuestionario no encontrado"
+                        "error": "aplicacion de Cuestionario no encontrado"
                     }
                 }
             ),
@@ -980,31 +981,33 @@ class AsignarCuestionarioUsuarioView(APIView):
         }
     )
     def post(self, request, *args, **kwargs):
-        cuestionario_id = request.data.get('cuestionario', None)
+        #cuestionario_id = request.data.get('cuestionario', None)
         usuario_id = request.data.get('usuario', None)
         aplicacion_id = request.data.get('cve_aplic', None)
         
-        print(cuestionario_id, usuario_id, aplicacion_id)
+        """  print(cuestionario_id, usuario_id, aplicacion_id)
         if not cuestionario_id or not usuario_id or not aplicacion_id:
             return Response({"error": "Debe proporcionar cuestionario, usuario y aplicación"}, status=status.HTTP_400_BAD_REQUEST)
-
+        """
         try:
-            # Obtener cuestionario, usuario y aplicación
-            cuestionario = Cuestionario.objects.get(pk=cuestionario_id)
+        # Obtener usuario, aplicación y cuestionarios
             usuario = CustomUser.objects.get(pk=usuario_id)
             aplicacion = DatosAplicacion.objects.get(pk=aplicacion_id)
+            cuestionarios = aplicacion.cuestionario.all()  # Obtener todos los cuestionarios asociados
 
-            # Crear la relación en AsignacionCuestionario
-            AsignacionCuestionario.objects.get_or_create(
-                usuario=usuario,
-                cuestionario=cuestionario,
-                aplicacion=aplicacion
-            )
+            if not cuestionarios.exists():
+                return Response({"error": "No se encontraron cuestionarios para esta aplicación"}, status=status.HTTP_404_NOT_FOUND)
 
-            return Response({"message": "Cuestionario asignado exitosamente al usuario"}, status=status.HTTP_200_OK)
+            # Asignar todos los cuestionarios al usuario
+            for cuestionario in cuestionarios:
+                AsignacionCuestionario.objects.get_or_create(
+                    usuario=usuario,
+                    cuestionario=cuestionario,
+                    aplicacion=aplicacion
+                )
 
-        except Cuestionario.DoesNotExist:
-            return Response({"error": "Cuestionario no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "Aplicacion de Cuestionario asignado exitosamente al usuario"}, status=status.HTTP_200_OK)
+
         except CustomUser.DoesNotExist:
             return Response({"error": "Usuario no encontrado"}, status=status.HTTP_404_NOT_FOUND)
         except DatosAplicacion.DoesNotExist:
@@ -1211,7 +1214,7 @@ class CerrarAplicacionCuestionarioView(APIView):
     """
     Endpoint para cerrar una aplicación de un cuestionario.
     """
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminUser]
     @swagger_auto_schema(
         operation_summary="Cerrar una aplicación de cuestionario",
         operation_description=(
@@ -1409,6 +1412,9 @@ class ReportePorAplicacionView(APIView):
             # Buscar el reporte asociado a la aplicación
             reporte = Reporte.objects.filter(referencia_id=aplicacion.cve_aplic).first()
 
+            if aplicacion.fecha_fin is None: 
+                return Response({"error": "La aplicación aún no ha finalizado."}, status=status.HTTP_400_BAD_REQUEST)
+            
             if not reporte:
                 return Response({"error": "Reporte no encontrado para esta aplicación."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -1429,7 +1435,7 @@ class ListarAplicacionesView(APIView):
     Endpoint para listar todas las aplicaciones activas y pasadas.
     """
     
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthorizedUser]
 
     @swagger_auto_schema(
         operation_summary="Listar aplicaciones activas y pasadas",

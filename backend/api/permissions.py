@@ -11,9 +11,10 @@ class IsAuthorizedUser(BasePermission):
             'Coordinador de Tutorias por Institucion',
             'Coordinador de Tutorias por Departamento',
             'Coordinador de Plan de Estudios',
-            'Tutores'
+            #'Tutores'
         ]       
         return request.user and request.user.groups.filter(name__in=authorized_groups).exists()
+
 class IsOwner(permissions.BasePermission):
     """
     Permiso personalizado para permitir solo a los propietarios de un objeto ver o editarlo.
