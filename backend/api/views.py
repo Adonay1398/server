@@ -1423,3 +1423,87 @@ class ReportePorAplicacionView(APIView):
 
         except DatosAplicacion.DoesNotExist:
             return Response({"error": "Aplicación no encontrada."}, status=status.HTTP_404_NOT_FOUND)
+
+class ListarAplicacionesView(APIView):
+    """
+    Endpoint para listar todas las aplicaciones activas y pasadas.
+    """
+    
+    #permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="Listar aplicaciones activas y pasadas",
+        operation_description=(
+            "Este endpoint permite obtener una lista de aplicaciones activas (con fecha límite mayor o igual "
+            "a la fecha actual y aún no finalizadas) y aplicaciones pasadas (que ya han finalizado)."
+        ),
+        responses={
+            200: openapi.Response(
+                description="Lista de aplicaciones activas y pasadas",
+                examples={
+                    "application/json": {
+                        "activas": [
+                            {
+                                "cve_aplic": 1,
+                                "fecha_inicio": "2025-01-01",
+                                "fecha_limite": "2025-01-10",
+                                "cuestionarios": ["Cuestionario 1", "Cuestionario 2"],
+                                "observaciones": "Aplicación activa actualmente."
+                            }
+                        ],
+                        "pasadas": [
+                            {
+                                "cve_aplic": 2,
+                                "fecha_inicio": "2024-12-01",
+                                "fecha_fin": "2024-12-31",
+                                "cuestionarios": ["Cuestionario 3"],
+                                "observaciones": "Aplicación completada."
+                            }
+                        ]
+                    }
+                },
+            ),
+            500: openapi.Response(
+                description="Error interno del servidor",
+                examples={
+                    "application/json": {
+                        "error": "Descripción del error"
+                    }
+                }
+            )
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        try:
+            # Filtrar aplicaciones activas y pasadas
+            aplicaciones_activas = DatosAplicacion.objects.filter(fecha_fin__isnull=True, fecha_limite__gte=now().date())
+            aplicaciones_pasadas = DatosAplicacion.objects.filter(fecha_fin__isnull=False, fecha_fin__lt=now().date())
+
+            # Serializar los datos
+            data = {
+                "activas": [
+                    {
+                        "cve_aplic": aplicacion.cve_aplic,
+                        "fecha_inicio": aplicacion.fecha_inicion,
+                        "fecha_limite": aplicacion.fecha_limite,
+                        "cuestionarios": [cuestionario.nombre_corto for cuestionario in aplicacion.cuestionario.all()],
+                        "observaciones": aplicacion.observaciones,
+                    }
+                    for aplicacion in aplicaciones_activas
+                ],
+                "pasadas": [
+                    {
+                        "cve_aplic": aplicacion.cve_aplic,
+                        "fecha_inicio": aplicacion.fecha_inicion,
+                        "fecha_fin": aplicacion.fecha_fin,
+                        "cuestionarios": [cuestionario.nombre_corto for cuestionario in aplicacion.cuestionario.all()],
+                        "observaciones": aplicacion.observaciones,
+                    }
+                    for aplicacion in aplicaciones_pasadas
+                ]
+            }
+
+            return Response(data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

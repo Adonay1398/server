@@ -4,7 +4,8 @@ from celery import Celery
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 app = Celery('backend')
-
+app.conf.broker_url = 'amqp://guest:guest@localhost:5672//'
+app.conf.result_backend = 'rpc://'
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
 

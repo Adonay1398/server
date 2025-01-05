@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import CustomUser
+from django_celery_beat.models import PeriodicTask, IntervalSchedule
+from django.contrib import admin
 
 class CustomUserAdmin(UserAdmin):
     # Campos que se mostrarán en la lista de usuarios
@@ -27,3 +29,12 @@ class CustomUserAdmin(UserAdmin):
 
 # Registrar el modelo CustomUser con la configuración personalizada
 admin.site.register(CustomUser, CustomUserAdmin)
+
+
+
+# Registrar el modelo solo si no está registrado
+""" try:
+    admin.site.register(PeriodicTask)
+except admin.sites.AlreadyRegistered:
+    pass
+ """

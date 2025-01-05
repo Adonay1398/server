@@ -35,10 +35,10 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')
 #SECRET_KEY = 'django-insecure-&%$jrf&gk0ern1(!%=xmeh)$1f$)f6p*p!rm=xsmr$27g4^9-y'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
-#DEBUG = True
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS','127.0.0.1:8000,server-prueba1.onrender.com').split(',')
-#ALLOWED_HOSTS=['127.0.0.1']
+#DEBUG = os.getenv('DEBUG', 'False') == 'True'
+DEBUG = True
+#ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS','127.0.0.1:8000,server-prueba1.onrender.com').split(',')
+ALLOWED_HOSTS=['127.0.0.1']
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ( 
@@ -66,10 +66,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'drf_yasg',
     'api',
-
+    
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+    #'celery',
+    'django_celery_beat',
     #'drf_yasg',
 ]
 AUTH_USER_MODEL = 'api.CustomUser'
@@ -223,6 +225,10 @@ LOGGING = {
     },
 }
 
-""" CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
+CELERY_RESULT_BACKEND = 'rpc://'
+
 CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json' """
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'  
+CELERY_ENABLE_UTC = True

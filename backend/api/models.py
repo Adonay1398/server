@@ -145,6 +145,7 @@ class DatosAplicacion(models.Model):
     fecha_inicion = models.DateField(null=True, blank=True)
     fecha_limite = models.DateField(null=True, blank=True)
     fecha_fin = models.DateField(null=True, blank=True)
+    reporte_generado = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Aplicación {self.cve_aplic} - {self.fecha}"
