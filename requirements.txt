@@ -19,3 +19,4 @@ python-decouple==3.8
 langchain-openai==0.2.12
 celery==5.4.0
 django-celery-beat==2.7.0
+
