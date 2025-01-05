@@ -1,4 +1,6 @@
+from django.http import HttpResponse
 from celery import shared_task
+from dotenv import load_dotenv
 from .models import CustomUser, Cuestionario, Indicador
 from api.modul.analysis import calcular_scores
 from celery import shared_task
@@ -8,6 +10,10 @@ from django.contrib.auth.models import User
 from api.views import generar_reporte_por_grupo  # Importa tu función personalizada
 from django.core.mail import send_mail
 import logging
+import os
+
+load_dotenv()
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_EMAILS = {
@@ -58,13 +64,21 @@ def enviar_notificacion_por_correo(usuario, nivel, aplicacion):
     Envía un correo notificando la generación del reporte.
     """
     asunto = f"Reporte generado para el nivel {nivel}"
-    mensaje = (
+    try:
+        mensaje = (
         f"Hola {usuario.first_name},\n\n"
         f"Se ha generado un reporte para la aplicación {aplicacion.cve_aplic} "
         f"en el nivel {nivel}.\n\n"
         "Saludos,\nEl equipo."
-    )
-    send_mail(asunto, mensaje, 'admin@example.com', [usuario.email])
+        )
+        send_mail(asunto, mensaje,  'e19080170@itmerida.edu.mx', [usuario.email])
+        print ("CORREO ENVIADO")
+    except Exception as e:
+        # Imprimir el error en consola si ocurre
+        print(f"Error al enviar el correo: {e}")
+    
+    
+
 
 @shared_task
 def verificar_y_cerrar_aplicaciones():

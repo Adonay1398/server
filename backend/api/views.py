@@ -1481,31 +1481,24 @@ class ListarAplicacionesView(APIView):
     )
     def get(self, request, *args, **kwargs):
         try:
-            # Filtrar aplicaciones activas y pasadas
-            aplicaciones_activas = DatosAplicacion.objects.filter(fecha_fin__isnull=True, fecha_limite__gte=now().date())
-            aplicaciones_pasadas = DatosAplicacion.objects.filter(fecha_fin__isnull=False, fecha_fin__lt=now().date())
+            # Filtrar todas las aplicaciones
+            aplicaciones = DatosAplicacion.objects.all()
 
             # Serializar los datos
             data = {
-                "activas": [
+                "aplicaciones": [
                     {
                         "cve_aplic": aplicacion.cve_aplic,
                         "fecha_inicio": aplicacion.fecha_inicion,
                         "fecha_limite": aplicacion.fecha_limite,
-                        "cuestionarios": [cuestionario.nombre_corto for cuestionario in aplicacion.cuestionario.all()],
-                        "observaciones": aplicacion.observaciones,
-                    }
-                    for aplicacion in aplicaciones_activas
-                ],
-                "pasadas": [
-                    {
-                        "cve_aplic": aplicacion.cve_aplic,
-                        "fecha_inicio": aplicacion.fecha_inicion,
                         "fecha_fin": aplicacion.fecha_fin,
                         "cuestionarios": [cuestionario.nombre_corto for cuestionario in aplicacion.cuestionario.all()],
                         "observaciones": aplicacion.observaciones,
+                        "activo": (
+                            True if (aplicacion.fecha_fin is None and (aplicacion.fecha_limite is None or aplicacion.fecha_limite >= now().date())) else False
+                        )
                     }
-                    for aplicacion in aplicaciones_pasadas
+                    for aplicacion in aplicaciones
                 ]
             }
 

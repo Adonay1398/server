@@ -19,6 +19,7 @@ from pathlib import Path
 from datetime import timedelta
 from decouple import config
 import dj_database_url
+from dotenv import load_dotenv
 
 #from api.models import CustomUser
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -35,10 +36,10 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')
 #SECRET_KEY = 'django-insecure-&%$jrf&gk0ern1(!%=xmeh)$1f$)f6p*p!rm=xsmr$27g4^9-y'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
-#DEBUG = True
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS','127.0.0.1:8000,server-prueba1.onrender.com').split(',')
-#ALLOWED_HOSTS=['127.0.0.1']
+#DEBUG = os.getenv('DEBUG', 'False') == 'True'
+DEBUG = True
+#ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS','127.0.0.1:8000,server-prueba1.onrender.com').split(',')
+ALLOWED_HOSTS=['127.0.0.1']
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ( 
@@ -232,3 +233,18 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'  
 CELERY_ENABLE_UTC = True
+
+
+load_dotenv()
+
+
+
+
+# Configuración de correo en Django
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
