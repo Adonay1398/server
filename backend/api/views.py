@@ -263,7 +263,7 @@ class CuestionarioStatusView(APIView):
         user = request.user
 
         # Obtener las aplicaciones asignadas al usuario
-        aplicaciones_asignadas = DatosAplicacion.objects.filter(asignaciones__usuario=user).distinct()
+        aplicaciones_asignadas = DatosAplicacion.objects.filter(asignaciones__usuario=user,fecha_inicion__lte=now().date()).distinct()
 
         if not aplicaciones_asignadas.exists():
             return Response({"on_hold": {"current": [], "past": []}, "submitted": []}, status=200)
