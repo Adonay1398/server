@@ -1488,12 +1488,14 @@ class ListarAplicacionesView(APIView):
             data = {
                 "aplicaciones": [
                     {
+                        "nombre_aplicacion": aplicacion.nombre_aplicacion,
                         "cve_aplic": aplicacion.cve_aplic,
                         "fecha_inicio": aplicacion.fecha_inicion,
                         "fecha_limite": aplicacion.fecha_limite,
                         "fecha_fin": aplicacion.fecha_fin,
                         "cuestionarios": [cuestionario.nombre_corto for cuestionario in aplicacion.cuestionario.all()],
                         "observaciones": aplicacion.observaciones,
+                        
                         "activo": (
                             True if (aplicacion.fecha_fin is None and (aplicacion.fecha_limite is None or aplicacion.fecha_limite >= now().date())) else False
                         )
