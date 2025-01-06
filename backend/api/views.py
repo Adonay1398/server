@@ -22,6 +22,7 @@ from .serializers import *
 #from api.modul.retro_chatgpt_service import generar_retro_jerarquica, procesar_cuestionarios,calcular_scores_jerarquicos
 #from api.utils import calcular_scores_jerarquicos #verificar_autenticacion_y_jerarquia
 from .permissions import IsAuthorizedUser
+from rest_framework.decorators import api_view
 
 # ==========================
 # USUARIOS
@@ -263,55 +264,66 @@ class CuestionarioStatusView(APIView):
 
         # Obtener las aplicaciones asignadas al usuario
         aplicaciones_asignadas = DatosAplicacion.objects.filter(asignaciones__usuario=user).distinct()
-        print(f"Aplicaciones asignadas al usuario: {aplicaciones_asignadas}")
 
         if not aplicaciones_asignadas.exists():
-            return Response({"on_hold": {"current": [], "past": []}, "submited": []}, status=200)
+            return Response({"on_hold": {"current": [], "past": []}, "submitted": []}, status=200)
 
         on_hold_current = []
-        on_hold_past = []  # Inicializar la lista
+        on_hold_past = []
         submitted = []
 
-        for aplicacion in aplicaciones_asignadas:
-            for cuestionario in aplicacion.cuestionario.all():  # Relación ManyToMany
+        # Procesar cada aplicación asignada
+        for aplicacion in aplicaciones_asignadas.prefetch_related('cuestionario__preguntas'):
+            for cuestionario in aplicacion.cuestionario.all():
+                # Contar el total de preguntas del cuestionario
+                total_preguntas = cuestionario.preguntas.count()
+
+                # Contar las preguntas contestadas por el usuario en la relación aplicación-cuestionario
                 preguntas_contestadas = Respuesta.objects.filter(
-                    user=user, pregunta__cuestionario=cuestionario, cve_aplic=aplicacion
+                    user=user, 
+                    pregunta__cuestionario=cuestionario, 
+                    cve_aplic=aplicacion
                 ).count()
 
+                # Determinar si la aplicación es pasada o actual
+                is_past = aplicacion.fecha_fin and aplicacion.fecha_fin < now().date()
 
-                total_preguntas = cuestionario.preguntas.count()
+                # Verificar si existe una asignación para esta combinación de aplicación y cuestionario
                 asignacion = AsignacionCuestionario.objects.filter(
-                    usuario=user, aplicacion=aplicacion
+                    usuario=user, 
+                    aplicacion=aplicacion, 
+                    cuestionario=cuestionario
                 ).first()
-                
-                is_past = aplicacion.fecha_fin and make_aware(datetime.combine(aplicacion.fecha_fin, time.min)) < timezone.now()
 
-                cuestionario_data = {
+                # Crear el diccionario de datos de la aplicación-cuestionario
+                aplicacion_cuestionario_data = {
+                    "cve_aplic": aplicacion.cve_aplic,
+                    "nombre_aplicacion": aplicacion.nombre_aplicacion,
                     "cve_cuestionario": cuestionario.cve_cuestionario,
-                    "nombre_corto": cuestionario.nombre_corto,
+                    "nombre_cuestionario": cuestionario.nombre_corto,
                     "is_active": cuestionario.is_active,
                     "fecha_inicio": aplicacion.fecha_inicion,
-                    "fecha_fin": aplicacion.fecha_fin.strftime("%Y-%m-%d") if aplicacion.fecha_fin else None,
                     "fecha_limite": aplicacion.fecha_limite,
+                    "fecha_fin": aplicacion.fecha_fin.strftime("%Y-%m-%d") if aplicacion.fecha_fin else None,
                     "is_past": is_past,
                     "fecha_completado": asignacion.fecha_completado if asignacion else None,
-                    "aplicaciones": [{"cve_aplic": aplicacion.cve_aplic}],
                     "total_preguntas": total_preguntas,
                     "preguntas_contestadas": preguntas_contestadas,
                 }
 
                 # Clasificar en "submitted", "on_hold_current" o "on_hold_past"
                 if preguntas_contestadas == total_preguntas:
-                    submitted.append(cuestionario_data)
+                    submitted.append(aplicacion_cuestionario_data)
                 elif is_past:
-                    on_hold_past.append(cuestionario_data)
+                    on_hold_past.append(aplicacion_cuestionario_data)
                 else:
-                    on_hold_current.append(cuestionario_data)
+                    on_hold_current.append(aplicacion_cuestionario_data)
 
         return Response({
             "on_hold": {"current": on_hold_current, "past": on_hold_past},
-            "submited": submitted
+            "submitted": submitted
         }, status=200)
+
 
 # ==========================
 # RESPUESTAS
@@ -1450,6 +1462,7 @@ class ListarAplicacionesView(APIView):
                     "application/json": {
                         "activas": [
                             {
+                                "nombre_aplicacion": "Aplicación 1",
                                 "cve_aplic": 1,
                                 "fecha_inicio": "2025-01-01",
                                 "fecha_limite": "2025-01-10",
@@ -1459,6 +1472,7 @@ class ListarAplicacionesView(APIView):
                         ],
                         "pasadas": [
                             {
+                                "nombre_aplicacion": "Aplicación 2",
                                 "cve_aplic": 2,
                                 "fecha_inicio": "2024-12-01",
                                 "fecha_fin": "2024-12-31",
@@ -1508,3 +1522,54 @@ class ListarAplicacionesView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        
+
+#@api_view(['POST'])
+class crear_aplicacionView(APIView):
+    """
+    Vista para crear una aplicación.
+    """
+    permission_classes = [IsAdminUser]
+    @swagger_auto_schema(
+        operation_summary="Crear una nueva aplicación",
+        operation_description="Este endpoint permite crear una nueva aplicación y asignar cuestionarios.",
+        request_body=DatosAplicacionSerializer,
+        responses={
+            201: openapi.Response(
+                description="Aplicación creada exitosamente",
+                examples={
+                    "application/json": {
+                        "message": "Aplicación creada y cuestionarios asignados",
+                        "data": {
+                            "nombre_aplicacion": "Nueva Aplicación",
+                            "fecha_inicio": "2025-01-01",
+                            "fecha_limite": "2025-01-10",
+                            "cuestionarios": [1, 2],
+                            "observaciones": "Aplicación activa"
+                        }
+                    }
+                },
+            ),
+            400: openapi.Response(
+                description="Errores de validación",
+                examples={
+                    "application/json": {
+                        "nombre_aplicacion": ["Este campo es obligatorio."],
+                        "cuestionarios": ["Debe proporcionar al menos un cuestionario."]
+                    }
+                },
+            ),
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        if request.method == 'POST':
+            serializer = DatosAplicacionSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({
+                    "message": "Aplicación creada y cuestionarios asignados",
+                    "data": serializer.data
+                }, status=status.HTTP_201_CREATED)
+            
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

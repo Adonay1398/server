@@ -70,9 +70,11 @@ urlpatterns = [
     path('api/relacion-cuestionario-aplicacion/', RelacionCuestionarioAplicacionView.as_view(), name='relacion-cuestionario-aplicacion'),
 
     #path('api/niveles/', NavegarNivelesAPIView.as_view(), name='navegar-niveles'),
+    path('crear-aplicacion/', crear_aplicacionView.as_view(), name='crear_aplicacion'),
+
     path('listar-aplicaciones/', ListarAplicacionesView.as_view(), name='listar-aplicaciones'),
-    path('api/asignar-cuestionario/', AsignarCuestionarioUsuarioView.as_view(), name='asignar-cuestionario'),
-    path('api/asignar-cuestionaro-grupo/', AsignarCuestionarioGrupoView.as_view(), name='asignar-cuestionario-grupo'),
+    path('api/asignar-aplicacion/', AsignarCuestionarioUsuarioView.as_view(), name='asignar-cuestionario'),
+    path('api/asignar-aplicacion-grupo/', AsignarCuestionarioGrupoView.as_view(), name='asignar-cuestionario-grupo'),
     path('api/cerrar-aplicacion-cuestionario/', CerrarAplicacionCuestionarioView.as_view(), name='cerrar-aplicacion-cuestionario'),
     #path('api/generar-reporte/', GenerarReporteAPIView.as_view(), name='generar-reporte'),
     #path('procesar-cuestionarios/', ProcesarCuestionariosView.as_view(), name='procesar_cuestionarios'),

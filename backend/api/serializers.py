@@ -748,12 +748,19 @@ class DatosAplicacionSerializer(serializers.ModelSerializer):
     Serializador para DatosAplicacion, mostrando información de la aplicación,
     fecha, hora y cuestionarios asociados.
     """
+    cuestionario = serializers.PrimaryKeyRelatedField(queryset=Cuestionario.objects.all(), many=True)
     class Meta:
         model = DatosAplicacion 
+        fields = ['nombre_aplicacion', 'fecha_inicion', 'fecha_limite', 'cuestionario', 'observaciones']
         
+    def create(self, validated_data):
         
-    
-        fields = ['cve_aplic', 'fecha', 'hora', 'cuestionario', 'observaciones']
+        cuestionario_data = validated_data.pop('cuestionario',[])
+        aplicacion = DatosAplicacion.objects.create(**validated_data)
+        if cuestionario_data:
+            aplicacion.cuestionario.set(cuestionario_data)
+        
+        return aplicacion
 
 
 class CascadeUploadSerializer(serializers.Serializer):

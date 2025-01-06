@@ -138,8 +138,8 @@ class TipoRespuesta(models.Model):
 
 class DatosAplicacion(models.Model):
     cve_aplic = models.AutoField(primary_key=True)
-    fecha = models.DateField()
-    hora = models.TimeField()
+    #fecha = models.DateField()
+    #hora = models.TimeField()
     cuestionario = models.ManyToManyField(Cuestionario, related_name='aplicaciones')
     observaciones = models.TextField(blank=True, null=True)
     fecha_inicion = models.DateField(null=True, blank=True)
