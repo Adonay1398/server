@@ -1643,7 +1643,80 @@ class ObtenerInformacionJerarquica(APIView):
     Endpoint para obtener información jerárquica según el nivel del grupo del usuario.
     """
     permission_classes = [IsAuthenticated]
-
+    @swagger_auto_schema(
+        operation_summary="Obtener información jerárquica",
+        operation_description="""
+            Este endpoint devuelve la información jerárquica relacionada al nivel del usuario autenticado.
+            
+            La jerarquía de niveles es la siguiente:
+            - Nacional: Muestra todas las regiones, instituciones, departamentos, carreras y usuarios.
+            - Regional: Muestra las instituciones, departamentos, carreras y usuarios de la región del usuario.
+            - Institucional: Muestra los departamentos, carreras y usuarios del instituto del usuario.
+            - Departamental: Muestra las carreras y usuarios del departamento del usuario.
+            - Individual: Muestra la información de la carrera y del usuario.
+        """,
+        responses={
+            200: openapi.Response(
+                description="Respuesta exitosa con la información jerárquica del nivel del usuario.",
+                examples={
+                    "application/json": {
+                        "nivel": "nacional",
+                        "nacion": {
+                            "nombre": "Nación"
+                        },
+                        "regiones": [
+                            {
+                                "id": 1,
+                                "nombre": "Región Sur",
+                                "instituciones": [
+                                    {
+                                        "id": 101,
+                                        "nombre": "Instituto Tecnológico de Mérida",
+                                        "departamentos": [
+                                            {
+                                                "id": 201,
+                                                "nombre": "Departamento de Ciencias Básicas",
+                                                "carreras": [
+                                                    {
+                                                        "id": 301,
+                                                        "nombre": "Ingeniería en Sistemas Computacionales",
+                                                        "usuarios": [
+                                                            {
+                                                                "id": 1,
+                                                                "first_name": "Juan",
+                                                                "last_name": "Pérez",
+                                                                "email": "juan.perez@example.com"
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ),
+            403: openapi.Response(
+                description="El usuario no pertenece a ningún grupo o no tiene permisos para acceder a la información.",
+                examples={
+                    "application/json": {
+                        "error": "El usuario no tiene permisos para acceder a esta información."
+                    }
+                }
+            ),
+            400: openapi.Response(
+                description="Error relacionado con la asignación jerárquica del usuario.",
+                examples={
+                    "application/json": {
+                        "error": "El usuario no tiene región asignada."
+                    }
+                }
+            )
+        }
+    )
     def get(self, request):
         usuario = request.user
         grupo = usuario.groups.first()
