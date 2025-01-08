@@ -1,6 +1,7 @@
 from django.http import HttpResponse
 from celery import shared_task
 from dotenv import load_dotenv
+
 from .models import CustomUser, Cuestionario, Indicador
 from api.modul.analysis import calcular_scores
 from celery import shared_task
@@ -13,8 +14,11 @@ import logging
 import os
 
 load_dotenv()
-
+import logging
 logger = logging.getLogger(__name__)
+
+
+from api.mails import enviar_correo_error, enviar_notificacion_por_correo
 
 DEFAULT_EMAILS = {
     "carrera": "le1908017@merida.tecnm.mx",
@@ -23,12 +27,12 @@ DEFAULT_EMAILS = {
     "region": "region_user@example.com",
     "nacion": "nacion_user@example.com",
 }
-
+""" 
 @shared_task
 def calcular_scores_task(user_id, aplicacion_id):
-    """
+    
     Tarea asíncrona para calcular los scores de un usuario en una aplicación.
-    """
+    
     # Obtener el usuario y el cuestionario
     usuario = CustomUser.objects.get(id=user_id)
     cuestionario = Cuestionario.objects.get(id=aplicacion_id)
@@ -56,28 +60,16 @@ def check_and_generate_reports():
             aplicacion.save()
         except Exception as e:
             # Loggear errores
-            print(f"Error generando reporte para la aplicación {aplicacion.id}: {e}")
+            print(f"Error generando reporte para la aplicación {aplicacion.id}: {e}") """
 
+DEFAULT_EMAILS = {
+    "carrera": "le19080170@merida.tecnm.mx",
+    "departamento": "departamento_user@example.com",
+    "institucion": "institucion_user@example.com",
+    "region": "region_user@example.com",
+    "nacion": "nacion_user@example.com",
+}
 
-def enviar_notificacion_por_correo(usuario, nivel, aplicacion):
-    """
-    Envía un correo notificando la generación del reporte.
-    """
-    asunto = f"Reporte generado para el nivel {nivel}"
-    try:
-        mensaje = (
-        f"Hola {usuario.first_name},\n\n"
-        f"Se ha generado un reporte para la aplicación {aplicacion.cve_aplic} "
-        f"en el nivel {nivel}.\n\n"
-        "Saludos,\nEl equipo."
-        )
-        send_mail(asunto, mensaje,  'e19080170@itmerida.edu.mx', [usuario.email])
-        print ("CORREO ENVIADO")
-    except Exception as e:
-        # Imprimir el error en consola si ocurre
-        print(f"Error al enviar el correo: {e}")
-    
-    
 
 
 @shared_task
@@ -87,42 +79,53 @@ def verificar_y_cerrar_aplicaciones():
     y genera reportes para los niveles definidos en DEFAULT_EMAILS.
     """
     try:
+        # Filtrar las aplicaciones que cumplen con la condición
         aplicaciones = DatosAplicacion.objects.filter(fecha_limite__lt=now().date(), fecha_fin__isnull=True)
         if not aplicaciones.exists():
             logger.info("No hay aplicaciones para cerrar.")
             return
 
+        # Cachear usuarios necesarios
+        usuarios = CustomUser.objects.filter(email__in=DEFAULT_EMAILS.values())
+        usuarios_dict = {usuario.email: usuario for usuario in usuarios}
+
+        # Procesar cada aplicación
         for aplicacion in aplicaciones:
             try:
                 # Cerrar la aplicación
                 aplicacion.fecha_fin = now().date()
                 aplicacion.reporte_generado = True
                 aplicacion.save()
-                logger.info(f"Closed application {aplicacion.cve_aplic}.")
+                logger.info(f"Aplicación cerrada: {aplicacion.cve_aplic}.")
 
                 # Obtener los cuestionarios asociados a la aplicación
                 cuestionarios = aplicacion.cuestionario.all()
                 if not cuestionarios.exists():
-                    logger.warning(f"No se encontraron cuestionarios asociados a la aplicación {aplicacion.cve_aplic}.")
+                    logger.warning(f"No cuestionarios asociados a la aplicación {aplicacion.cve_aplic}.")
                     continue
                 logger.info(f"Cuestionarios asociados: {[q.cve_cuestionario for q in cuestionarios]}")
 
-                # Generar reportes para cada nivel
+                # Generar reportes y enviar correos por nivel
                 for nivel, email in DEFAULT_EMAILS.items():
-                    try:
-                        usuario = CustomUser.objects.filter(email=email).first()
-                        if not usuario:
-                            logger.warning(f"Usuario no encontrado para nivel {nivel} con email {email}.")
-                            continue
+                    usuario = usuarios_dict.get(email)
+                    if not usuario:
+                        logger.warning(f"Usuario no encontrado para nivel {nivel} con email {email}.")
+                        continue
 
+                    try:
                         logger.info(f"Generando reporte para nivel {nivel} con usuario {email}.")
-                        generar_reporte_por_grupo(usuario, aplicacion, cuestionarios.first().cve_cuestionario)
-                        logger.info(f"Reporte generado para nivel {nivel}.")
-                        enviar_notificacion_por_correo(usuario, nivel, aplicacion)
-                        logger.info(f"Correo enviado a {email} para nivel {nivel}.")
+                        resultado = generar_reporte_por_grupo(usuario, aplicacion, cuestionarios.first().cve_cuestionario)
+
+                        if resultado["status"] == "success":
+                            enviar_notificacion_por_correo(usuario, nivel, aplicacion)
+                            logger.info(f"Reporte generado y notificado para nivel {nivel}.")
+                        else:
+                            enviar_correo_error(email, nivel, aplicacion, resultado["message"])
+                            logger.warning(f"No se pudo generar el reporte para nivel {nivel}: {resultado['message']}")
 
                     except Exception as e:
-                        logger.error(f"Error al generar el reporte para nivel {nivel}: {e}")
+                        logger.error(f"Error inesperado al generar el reporte para nivel {nivel}: {e}")
+                        enviar_correo_error(email, nivel, aplicacion, str(e))
 
             except Exception as e:
                 logger.error(f"Error al procesar la aplicación {aplicacion.cve_aplic}: {e}")

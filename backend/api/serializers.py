@@ -10,6 +10,7 @@ from api.models import (
     AsignacionCuestionario, CustomUser, Carrera, IndicadorPromedio, Region, RetroChatGPT,  ScoreConstructo, ScoreIndicador, Constructo, Indicador,
     Instituto, Departamento, DatosAplicacion, Respuesta, Cuestionario ,  Pregunta,  Reporte, 
 )
+from api.mails import enviar_correo_activacion
 #RetroChatGPT
 class CarreraSerializer(serializers.ModelSerializer):
     """
@@ -319,6 +320,7 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
             email=validated_data['email'],
             fecha_nacimiento=validated_data['fecha_nacimiento'],
             carrera=carrera,
+            is_active=False
         )
         user.set_password(validated_data['password'])
         user.save()
@@ -346,7 +348,7 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
             # Asignar la aplicación al usuario (si es una relación ForeignKey)
             user.aplicacion = aplicacion  # Si es ManyToMany, usa user.aplicaciones.add(aplicacion)
             user.save()  # Guardar cambios en el usuario
-
+            enviar_correo_activacion(user)  # Enviar correo de confirmación
             return user  # Retorna el usuario creado
 
         except DatosAplicacion.DoesNotExist:

@@ -23,6 +23,7 @@ from .serializers import *
 #from api.utils import calcular_scores_jerarquicos #verificar_autenticacion_y_jerarquia
 from .permissions import IsAuthorizedUser
 from rest_framework.decorators import api_view
+from django.core.signing import SignatureExpired, BadSignature,TimestampSigner
 
 # ==========================
 # USUARIOS
@@ -298,7 +299,7 @@ class CuestionarioStatusView(APIView):
                 # Crear el diccionario de datos de la aplicación-cuestionario
                 aplicacion_cuestionario_data = {
                     "cve_aplic": aplicacion.cve_aplic,
-                    "nombre_aplicacion": aplicacion.nombre_aplicacion,
+                    #"nombre_aplicacion": aplicacion.nombre_aplicacion,
                     "cve_cuestionario": cuestionario.cve_cuestionario,
                     "nombre_cuestionario": cuestionario.nombre_corto,
                     "is_active": cuestionario.is_active,
@@ -321,7 +322,7 @@ class CuestionarioStatusView(APIView):
 
         return Response({
             "on_hold": {"current": on_hold_current, "past": on_hold_past},
-            "submitted": submitted
+            "submited": submitted
         }, status=200)
 
 
@@ -1573,3 +1574,334 @@ class crear_aplicacionView(APIView):
                 }, status=status.HTTP_201_CREATED)
             
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+
+signer = TimestampSigner()
+
+class ActivarCuentaView(APIView):
+    """
+    API para activar la cuenta del usuario mediante un token.
+    """
+
+    @swagger_auto_schema(
+        operation_summary="Activar una cuenta de usuario",
+        operation_description="Activa la cuenta del usuario mediante un token enviado por correo electrónico.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'token': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Token único generado para la activación de la cuenta",
+                ),
+            },
+            required=['token'],
+        ),
+        responses={
+            200: openapi.Response(
+                description="Cuenta activada exitosamente.",
+                examples={
+                    "application/json": {"message": "Cuenta activada exitosamente. Ahora puedes iniciar sesión."}
+                },
+            ),
+            400: openapi.Response(
+                description="Error al activar la cuenta.",
+                examples={
+                    "application/json": {"error": "El enlace es inválido o ha expirado."}
+                },
+            ),
+        },
+    )
+    def post(self, request):
+        token = request.data.get('token')  # Token enviado en el cuerpo de la solicitud
+        if not token:
+            return Response({"error": "Token no proporcionado."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user_id = signer.unsign(token, max_age=3600)
+            user = get_object_or_404(CustomUser, pk=user_id)
+
+            if user.is_active:
+                return Response({"message": "Tu cuenta ya está activada. Por favor, inicia sesión."}, status=status.HTTP_200_OK)
+
+            # Activar la cuenta
+            user.is_active = True
+            user.save()
+            return Response({"message": "Cuenta activada exitosamente. Ahora puedes iniciar sesión."}, status=status.HTTP_200_OK)
+        except SignatureExpired:
+            return Response({"error": "El enlace ha expirado. Por favor, solicita un nuevo enlace."}, status=status.HTTP_400_BAD_REQUEST)
+        except BadSignature:
+            return Response({"error": "El enlace es inválido."}, status=status.HTTP_400_BAD_REQUEST)
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from .models import CustomUser, Carrera, Departamento, Instituto, Region
+
+
+class ObtenerInformacionJerarquica(APIView):
+    """
+    Endpoint para obtener información jerárquica según el nivel del grupo del usuario.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        usuario = request.user
+        grupo = usuario.groups.first()
+
+        if not grupo:
+            return Response({"error": "El usuario no pertenece a ningún grupo."}, status=403)
+
+        # Niveles y lógica asociada
+        niveles = {
+            "Coordinador de Tutorias a Nivel Nacional": self.obtener_nacional,
+            "Coordinador de Tutorias a Nivel Regional": self.obtener_regional,
+            "Coordinador de Tutorias por Institucion": self.obtener_institucional,
+            "Coordinador de Tutorias por Departamento": self.obtener_departamental,
+            "Tutores": self.obtener_individual,
+        }
+
+        # Determinar el nivel del usuario y ejecutar la lógica correspondiente
+        nivel_funcion = niveles.get(grupo.name)
+        if not nivel_funcion:
+            return Response({"error": "El usuario no tiene permisos para acceder a esta información."}, status=403)
+
+        # Ejecutar la función asociada al nivel
+        return nivel_funcion(usuario)
+
+    def obtener_nacional(self, usuario):
+        """
+        Devuelve todas las regiones, instituciones, departamentos, carreras y usuarios.
+        """
+        regiones = Region.objects.all()
+        data = []
+        for region in regiones:
+            instituciones = Instituto.objects.filter(region=region)
+            institucion_data = []
+            for instituto in instituciones:
+                departamentos = Departamento.objects.filter(instituto=instituto)
+                departamento_data = []
+                for departamento in departamentos:
+                    carreras = Carrera.objects.filter(departamento=departamento)
+                    carrera_data = []
+                    for carrera in carreras:
+                        # Filtrar usuarios que no son coordinadores
+                        usuarios = CustomUser.objects.filter(
+                            carrera=carrera
+                        ).exclude(
+                            groups__name__in=[
+                                "Coordinador de Tutorias por Departamento",
+                                "Coordinador de Tutorias por Institucion",
+                                "Coordinador de Tutorias a Nivel Regional",
+                                "Coordinador de Tutorias a Nivel Nacional"
+                            ]
+                        ).values("id", "first_name", "last_name", "email")
+                        carrera_data.append({
+                            "id": carrera.cve_carrera,
+                            "nombre": carrera.nombre,
+                            "usuarios": list(usuarios)
+                        })
+                    departamento_data.append({
+                        "id": departamento.cve_depto,
+                        "nombre": departamento.nombre,
+                        "carreras": carrera_data
+                    })
+                institucion_data.append({
+                    "id": instituto.cve_inst,
+                    "nombre": instituto.nombre_completo,
+                    "departamentos": departamento_data
+                })
+            data.append({
+                "id": region.cve_region,
+                "nombre": region.nombre,
+                "instituciones": institucion_data
+            })
+
+        return Response({
+            "nivel": "nacional",
+            "nacion": {"nombre": "Nación"},
+            "regiones": data,
+        })
+
+    def obtener_regional(self, usuario):
+        """
+        Devuelve la región asociada al usuario, con sus instituciones, departamentos, carreras y usuarios.
+        """
+        region = usuario.carrera.departamento.instituto.region
+        if not region:
+            return Response({"error": "El usuario no tiene región asignada."}, status=400)
+
+        instituciones = Instituto.objects.filter(region=region)
+        institucion_data = []
+        for instituto in instituciones:
+            departamentos = Departamento.objects.filter(instituto=instituto)
+            departamento_data = []
+            for departamento in departamentos:
+                carreras = Carrera.objects.filter(departamento=departamento)
+                carrera_data = []
+                for carrera in carreras:
+                    # Filtrar usuarios que no son coordinadores
+                    usuarios = CustomUser.objects.filter(
+                        carrera=carrera
+                    ).exclude(
+                        groups__name__in=[
+                            "Coordinador de Tutorias por Departamento",
+                            "Coordinador de Tutorias por Institucion",
+                            "Coordinador de Tutorias a Nivel Regional",
+                            "Coordinador de Tutorias a Nivel Nacional"
+                        ]
+                    ).values("id", "first_name", "last_name", "email")
+                    carrera_data.append({
+                        "id": carrera.cve_carrera,
+                        "nombre": carrera.nombre,
+                        "usuarios": list(usuarios)
+                    })
+                departamento_data.append({
+                    "id": departamento.cve_depto,
+                    "nombre": departamento.nombre,
+                    "carreras": carrera_data
+                })
+            institucion_data.append({
+                "id": instituto.cve_inst,
+                "nombre": instituto.nombre_completo,
+                "departamentos": departamento_data
+            })
+
+        return Response({
+            "nivel": "regional",
+            "nacion": {"nombre": "Nación"},
+            "region": {
+                "id": region.cve_region,
+                "nombre": region.nombre,
+                "instituciones": institucion_data,
+            }
+        })
+
+    def obtener_institucional(self, usuario):
+        """
+        Devuelve el instituto asociado al usuario, con sus departamentos, carreras y usuarios.
+        """
+        instituto = usuario.carrera.departamento.instituto
+        if not instituto:
+            return Response({"error": "El usuario no tiene instituto asignado."}, status=400)
+
+        departamentos = Departamento.objects.filter(instituto=instituto)
+        departamento_data = []
+        for departamento in departamentos:
+            carreras = Carrera.objects.filter(departamento=departamento)
+            carrera_data = []
+            for carrera in carreras:
+                # Filtrar usuarios que no son coordinadores
+                usuarios = CustomUser.objects.filter(
+                    carrera=carrera
+                ).exclude(
+                    groups__name__in=[
+                        "Coordinador de Tutorias por Departamento",
+                        "Coordinador de Tutorias por Institucion",
+                        "Coordinador de Tutorias a Nivel Regional",
+                        "Coordinador de Tutorias a Nivel Nacional"
+                    ]
+                ).values("id", "first_name", "last_name", "email")
+                carrera_data.append({
+                    "id": carrera.cve_carrera,
+                    "nombre": carrera.nombre,
+                    "usuarios": list(usuarios)
+                })
+            departamento_data.append({
+                "id": departamento.cve_depto,
+                "nombre": departamento.nombre,
+                "carreras": carrera_data
+            })
+
+        return Response({
+            "nivel": "institucional",
+            "nacion": {"nombre": "Nación"},
+            "region": {
+                "id": instituto.region.cve_region,
+                "nombre": instituto.region.nombre,
+            },
+            "instituto": {
+                "id": instituto.cve_inst,
+                "nombre": instituto.nombre_completo,
+                "departamentos": departamento_data,
+            }
+        })
+
+    def obtener_departamental(self, usuario):
+        """
+        Devuelve el departamento asociado al usuario, con sus carreras y usuarios.
+        """
+        departamento = usuario.carrera.departamento
+        if not departamento:
+            return Response({"error": "El usuario no tiene departamento asignado."}, status=400)
+
+        carreras = Carrera.objects.filter(departamento=departamento)
+        carrera_data = []
+        for carrera in carreras:
+            # Filtrar usuarios que no son coordinadores
+            usuarios = CustomUser.objects.filter(
+                carrera=carrera
+            ).exclude(
+                groups__name__in=[
+                    "Coordinador de Tutorias por Departamento",
+                    "Coordinador de Tutorias por Institucion",
+                    "Coordinador de Tutorias a Nivel Regional",
+                    "Coordinador de Tutorias a Nivel Nacional"
+                ]
+            ).values("id", "first_name", "last_name", "email")
+            carrera_data.append({
+                "id": carrera.cve_carrera,
+                "nombre": carrera.nombre,
+                "usuarios": list(usuarios)
+            })
+
+        return Response({
+            "nivel": "departamento",
+            "nacion": {"nombre": "Nación"},
+            "region": {
+                "id": departamento.instituto.region.cve_region,
+                "nombre": departamento.instituto.region.nombre,
+            },
+            "instituto": {
+                "id": departamento.instituto.cve_inst,
+                "nombre": departamento.instituto.nombre_completo,
+            },
+            "departamento": {
+                "id": departamento.cve_depto,
+                "nombre": departamento.nombre,
+                "carreras": carrera_data,
+            }
+        })
+
+    def obtener_individual(self, usuario):
+        """
+        Devuelve la información del tutor y la jerarquía a la que pertenece.
+        """
+        carrera = usuario.carrera
+        if not carrera:
+            return Response({"error": "El usuario no tiene carrera asignada."}, status=400)
+
+        return Response({
+            "nivel": "individual",
+            "nacion": {"nombre": "Nación"},
+            "region": {
+                "id": carrera.departamento.instituto.region.cve_region,
+                "nombre": carrera.departamento.instituto.region.nombre,
+            },
+            "instituto": {
+                "id": carrera.departamento.instituto.cve_inst,
+                "nombre": carrera.departamento.instituto.nombre_completo,
+            },
+            "departamento": {
+                "id": carrera.departamento.cve_depto,
+                "nombre": carrera.departamento.nombre,
+            },
+            "carrera": {
+                "id": carrera.cve_carrera,
+                "nombre": carrera.nombre,
+            },
+            "usuario": {
+                "id": usuario.id,
+                "nombre": f"{usuario.first_name} {usuario.last_name}",
+                "email": usuario.email,
+            }
+        })

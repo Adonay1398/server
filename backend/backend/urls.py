@@ -6,6 +6,7 @@ from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from api.views import *
+from api.mails import activar_cuenta
 
 # ==========================
 # SWAGGER CONFIGURATION
@@ -40,6 +41,7 @@ urlpatterns = [
     path("api/token/", CustomTokenObtainPairView.as_view(), name="get_token"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="refresh"),
     path("api-auth/", include("rest_framework.urls")),
+    path('activar/', ActivarCuentaView.as_view(), name='activar_cuenta'),
 
     # User Management
     path("api/create-user/", UserRegistrationView.as_view(), name="create_user"),
@@ -49,6 +51,7 @@ urlpatterns = [
     path('api/user-related-data-retro/<int:Cuestionario_id>/<int:aplicacion_id>/', UserRelatedDataRetroView.as_view(), name='user-related-data'),
     #path('user/related-data-reporte/', UserDataReporteView.as_view(), name='user-related-data'),
     path('api/reporte-aplicacion/<int:cve_aplic>/', ReportePorAplicacionView.as_view(), name='reporte-por-aplicacion'),
+    path("api/informacion-jerarquica/", ObtenerInformacionJerarquica.as_view(), name="informacion_jerarquica"),
 
     # Cuestionarios
     path('cuestionario/', CuestionarioListView.as_view(), name='cuestionario-list'),

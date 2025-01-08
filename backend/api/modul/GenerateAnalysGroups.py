@@ -5,6 +5,8 @@ from api.modul.openAI import make_analysis
 from django.utils.timezone import now
 from collections import defaultdict
 from django.db import transaction
+import logging
+logger = logging.getLogger(__name__)
 
 def obtener_tutores_por_grupo(usuario):
     """
@@ -340,11 +342,13 @@ def generar_reporte_por_grupo(usuario, aplicacion,cuestionario_id):
         )
         print("ok-grupo 4")
         print("Reporte guardado exitosamente.")
-    except Exception as e:
-            print(f"Error al guardar el reporte: {e}")
-    return {
+        return {
             "status": "success",
-            #"reporte": reporte_obj.id,
-            #"datos_tutores": datos_tutores
+            "message": "Reporte generado correctamente."
         }
-
+    except Exception as e:
+        logger.error(f"Error al generar el reporte: {e}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }

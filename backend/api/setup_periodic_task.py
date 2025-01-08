@@ -1,11 +1,8 @@
 from django_celery_beat.models import PeriodicTask, IntervalSchedule
 
 def setup_periodic_task():
-    """
-    Configura la tarea periódica para verificar y cerrar aplicaciones.
-    """
     schedule, _ = IntervalSchedule.objects.get_or_create(
-        every=1,  # Cada 60 minutos
+        every=1,  # Cada 1 día
         period=IntervalSchedule.DAYS,
     )
 

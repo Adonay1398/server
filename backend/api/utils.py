@@ -50,68 +50,11 @@ def calculate_construct_score(responses, reverse_items=None, weights=None, metho
     return score*100 
 
 
-
-""" def calcular_promedio_carrera(carrera, cuestionario):
-    usuarios = CustomUser.objects.filter(carrera=carrera)
-    scores_indicadores = ScoreIndicador.objects.filter(
-        usuario__in=usuarios,
-        indicador__constructos__preguntas_const1__cuestionario=cuestionario
-    ).distinct()
-
-    total_score = sum(si.score for si in scores_indicadores)
-    count = scores_indicadores.count()
-    average_score = total_score / count if count > 0 else 0
-
-    AggregateIndicatorScore.objects.update_or_create(
-        nivel='carrera',
-        carrera=carrera,
-        cuestionario=cuestionario,
-        defaults={'average_score': average_score}
-    )
-    print(f"Promedio guardado para la carrera {carrera.id}: {average_score}")
-
-
-def calcular_promedio_departamento(departamento, cuestionario):
-    usuarios = CustomUser.objects.filter(carrera__departamento=departamento)
-    scores_indicadores = ScoreIndicador.objects.filter(
-        usuario__in=usuarios,
-        indicador__constructos__preguntas_const1__cuestionario=cuestionario
-    ).distinct()
-
-    total_score = sum(si.score for si in scores_indicadores)
-    count = scores_indicadores.count()
-    average_score = total_score / count if count > 0 else 0
-
-    AggregateIndicatorScore.objects.update_or_create(
-        nivel='departamento',
-        departamento=departamento,
-        cuestionario=cuestionario,
-        defaults={'average_score': average_score}
-    )
-    print(f"Promedio guardado para el departamento {departamento.id}: {average_score}")
-
-def calcular_promedio_instituto(instituto, cuestionario):
-    usuarios = CustomUser.objects.filter(carrera__departamento__instituto=instituto)
-    scores_indicadores = ScoreIndicador.objects.filter(
-        usuario__in=usuarios,
-        indicador__constructos__preguntas_const1__cuestionario=cuestionario
-    ).distinct()
-
-    total_score = sum(si.score for si in scores_indicadores)
-    count = scores_indicadores.count()
-    average_score = total_score / count if count > 0 else 0
-
-    AggregateIndicatorScore.objects.update_or_create(
-        nivel='instituto',
-        instituto=instituto,
-        cuestionario=cuestionario,
-        defaults={'average_score': average_score}
-    )
-    print(f"Promedio guardado para el instituto {instituto.id}: {average_score}") """
+""" 
 def calcular_promedios_indicadores(scores):
-    """
+    
     Calcula el promedio de los indicadores basado en los scores.
-    """
+    
     indicadores = {}
     for score in scores:
         indicador = score.indicador.nombre
@@ -123,9 +66,9 @@ def calcular_promedios_indicadores(scores):
     return {indicador: sum(valores) / len(valores) for indicador, valores in indicadores.items()}
 
 def combinar_promedios(datos_nivel, grupos):
-    """
+    
     Combina los promedios de los indicadores a nivel superior.
-    """
+    
     promedios_acumulados = {}
     for grupo in grupos:
         if grupo.nombre in datos_nivel:
@@ -139,9 +82,8 @@ def combinar_promedios(datos_nivel, grupos):
     return {indicador: sum(valores) / len(valores) for indicador, valores in promedios_acumulados.items()}
 
 def calcular_scores_tutor():
-    """
     Calcula los scores de los indicadores para cada tutor.
-    """
+    
     tutores = CustomUser.objects.filter(groups__name="Tutor")
     resultados = {}
 
@@ -162,9 +104,9 @@ def calcular_scores_tutor():
 
 
 def calcular_scores_jerarquicos(usuario, nivel, identificador):
-    """
+    
     Calcula los scores de los indicadores jerárquicamente desde Carrera hasta Nación.
-    """
+    
     resultados = {}
 
     if nivel == 'carrera':
@@ -207,9 +149,9 @@ def calcular_scores_jerarquicos(usuario, nivel, identificador):
     return resultados
 
 def calcular_scores_tutor():
-    """
+    
     Calcula los scores de los indicadores para cada tutor.
-    """
+    
     tutores = CustomUser.objects.filter(groups__name="Tutor")
     resultados = {}
 
@@ -226,4 +168,4 @@ def calcular_scores_tutor():
             )
         resultados[tutor.username] = promedios
 
-    return resultados
+    return resultados """

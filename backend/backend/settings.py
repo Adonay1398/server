@@ -25,7 +25,7 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
+load_dotenv()
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -36,9 +36,9 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')
 #SECRET_KEY = 'django-insecure-&%$jrf&gk0ern1(!%=xmeh)$1f$)f6p*p!rm=xsmr$27g4^9-y'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
-#DEBUG = True
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS','127.0.0.1:8000,server-prueba1.onrender.com').split(',')
+DEBUG = os.getenv('DEBUG' , 'False') == 'True'
+#DEBUG = False
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS').split() #,'127.0.0.1:8000,server-prueba1.onrender.com').split(',')
 #ALLOWED_HOSTS=['127.0.0.1']
 
 REST_FRAMEWORK = {
@@ -66,8 +66,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'drf_yasg',
+    #"api.apps.ApiConfig",
     'api',
-    
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
@@ -122,22 +122,12 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL','postgresql://dbtutores_user:apdI1sFwvuBJZstb7g2A02J5j0TCcoMs@dpg-ctc4f49u0jms73cqloo0-a.oregon-postgres.render.com/dbtutores'),
+        default=os.getenv('DATABASE_URL'),#,'postgresql://dbtutores_user:apdI1sFwvuBJZstb7g2A02J5j0TCcoMs@dpg-ctc4f49u0jms73cqloo0-a.oregon-postgres.render.com/dbtutores'),
         conn_max_age=600,
     
     )
 }
 
-
-
- 
-
-""" DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL','postgresql://dbtest_ik13_user:xPubywJhSpylUnwt1WE0l4rOWGeWLj2q@dpg-csnvttqj1k6c73badr3g-a.oregon-postgres.render.com/dbtest_ik13'),
-        conn_max_age=600
-    )
-} """
 
 
 
@@ -206,7 +196,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 }
-import os
+
 
 # Configuración de archivos estáticos
 STATIC_URL = '/static/'
@@ -235,11 +225,6 @@ CELERY_TIMEZONE = 'UTC'
 CELERY_ENABLE_UTC = True
 
 
-load_dotenv()
-
-
-
-
 # Configuración de correo en Django
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
@@ -248,3 +233,5 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+FRONTEND_DOMAIN = os.getenv('FRONTEND_DOMAIN') 
