@@ -9,6 +9,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, DjangoModelPer
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication   
 from rest_framework_simplejwt.views import TokenObtainPairView
+from django.core.exceptions import PermissionDenied
 
 from api.tasks import generar_reportes_aplicacion_task
 from .modul.GenerateAnalysGroups import generar_reporte_por_grupo
@@ -1950,134 +1951,7 @@ class ObtenerInformacionJerarquica(APIView):
             }
         })
 
-class ReportePorAplicacionArgumento2View(APIView):
-    """
-    Endpoint para obtener reportes filtrados por aplicación y un único argumento adicional
-    (Instituto, Departamento, Carrera, o Usuario). Si no se proporciona argumento adicional,
-    devuelve el reporte del grupo al que pertenece el usuario autenticado.
-    """
-    permission_classes = [IsAuthenticated]
 
-    def get(self, request, cve_aplic, tipo=None, valor=None):
-        try:
-            # Validate the application exists
-            aplicacion = get_object_or_404(DatosAplicacion, pk=cve_aplic)
-
-            # Check if the application is closed
-            if aplicacion.fecha_fin is None:
-                return Response({"error": "La aplicación aún no ha finalizado."}, status=status.HTTP_400_BAD_REQUEST)
-
-            grupo_usuario = request.user.groups.first()
-            if not grupo_usuario:
-                return Response({"error": "El usuario no pertenece a ningún grupo."}, status=status.HTTP_403_FORBIDDEN)
-
-            # Map user group to level
-            nivel_grupo = {
-                "Coordinador de Tutorias a Nivel Nacional": "Coordinador de Tutorias a Nivel Nacional",
-                "Coordinador de Tutorias a Nivel Regional": "Coordinador de Tutorias a Nivel Region",
-                "Coordinador de Tutorias por Institucion": "Coordinador de Tutorias por Institucion",
-                "Coordinador de Tutorias por Departamento": "Coordinador de Tutorias por Departamento",
-                "Coordinador de Plan de Estudios": "Coordinador de Plan de Estudios",
-                "Tutores": "Tutores",
-            }.get(grupo_usuario.name)
-
-            if not nivel_grupo:
-                return Response({"error": f"El grupo '{grupo_usuario.name}' no tiene un nivel asignado."},
-                                status=status.HTTP_400_BAD_REQUEST)
-
-            niveles = [
-                "Coordinador de Tutorias a Nivel Nacional",
-                "Coordinador de Tutorias a Nivel Region",
-                "Coordinador de Tutorias por Institucion",
-                "Coordinador de Tutorias por Departamento",
-                "Coordinador de Plan de Estudios",
-                "Tutores"
-            ]
-            nivel_index_usuario = niveles.index(nivel_grupo)
-
-            if not tipo and not valor:
-                nivel_consultado = nivel_grupo
-                nivel_index_consultado = nivel_index_usuario
-            else:
-                nivel_consultado = {
-                    "region": "Coordinador de Tutorias a Nivel Region",
-                    "instituto": "Coordinador de Tutorias por Institucion",
-                    "departamento": "Coordinador de Tutorias por Departamento",
-                    "planestudios": "Coordinador de Plan de Estudios",
-                    "persona": "Tutores",
-                }.get(tipo.lower())
-
-                if not nivel_consultado:
-                    return Response(
-                        {"error": f"El tipo '{tipo}' no es válido. Use 'Region','Instituto','Departamento','PlanEstudios' o 'Persona'."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-
-                nivel_index_consultado = niveles.index(nivel_consultado)
-            if nivel_grupo == nivel_consultado:
-                return Response(
-                    {"error": "No puedes consultar reportes del mismo nivel al que perteneces."},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            if nivel_index_consultado < nivel_index_usuario:
-                return Response(
-                    {"error": "No tienes permiso para consultar niveles superiores a tu jerarquía."},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            #if nivel_index_consultado == nivel_index_usuario:
-
-            # Retrieve and process reports for each level
-            resultados = []
-            for nivel in niveles[nivel_index_usuario:nivel_index_consultado + 1]:
-                reportes = Reporte.objects.filter(referencia_id=cve_aplic, nivel=nivel)
-                if not reportes.exists():
-                    continue
-
-                promedios_indicadores = defaultdict(list)
-                for reporte in reportes:
-                    if reporte.datos_promedios:
-                        for indicador, data in reporte.datos_promedios.items():
-                            promedios_indicadores[indicador].append(data["prom_score"])
-
-                # Aggregate scores
-                aggregated_scores = {
-                    indicador: sum(scores) / len(scores) for indicador, scores in promedios_indicadores.items()
-                }
-                resultados.append({
-                    "nivel": nivel,
-                    "promedios_indicadores": aggregated_scores
-                })
-
-            # Get the last report for detailed data
-            reporte = reportes.last() if reportes.exists() else None
-
-            respuesta = {
-                "texto_fortalezas": reporte.texto_fortalezas if reporte else "No data available",
-                "texto_oportunidades": reporte.texto_oportunidades if reporte else "No data available",
-                "observaciones": reporte.observaciones if reporte else "No data available",
-                "datos_promedios": reporte.datos_promedios if reporte else {},
-                #"nacion": "Nación",
-                "nivel": reporte.nivel if reporte else nivel_grupo,
-                "usuario_generador": reporte.usuario_generador.email if reporte and reporte.usuario_generador else None,
-                "region": reporte.region.nombre if reporte and reporte.region else None,
-                "institucion": reporte.institucion.nombre_completo if reporte and reporte.institucion else None,
-                "departamento": reporte.departamento.nombre if reporte and reporte.departamento else None,
-                "carrera": reporte.carrera.nombre if reporte and reporte.carrera else None,
-            }
-
-            return Response({
-                
-                "detalle": respuesta,
-                "resultados": resultados,
-            }, status=status.HTTP_200_OK)
-
-        except PermissionDenied as e:
-            return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
-        except Exception as e:
-            return Response({"error": f"Error interno del servidor: {str(e)}"},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-from django.core.exceptions import PermissionDenied
 class ReportePorAplicacionArgumentoView(APIView):
     """
     Endpoint para obtener reportes filtrados por aplicación y un único argumento adicional

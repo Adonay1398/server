@@ -36,10 +36,10 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')
 #SECRET_KEY = 'django-insecure-&%$jrf&gk0ern1(!%=xmeh)$1f$)f6p*p!rm=xsmr$27g4^9-y'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-#DEBUG = os.getenv('DEBUG' , 'False') == 'True'
-DEBUG = True
-#ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS').split() #,'127.0.0.1:8000,server-prueba1.onrender.com').split(',')
-ALLOWED_HOSTS=['127.0.0.1']
+DEBUG = os.getenv('DEBUG' , 'False') == 'True'
+#DEBUG = True
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS').split() #,'127.0.0.1:8000,server-prueba1.onrender.com').split(',')
+#ALLOWED_HOSTS=['127.0.0.1']
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ( 
