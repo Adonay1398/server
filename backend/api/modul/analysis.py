@@ -186,6 +186,12 @@ def calcular_scores(usuario, aplicacion, cuestionario):
         except Exception as e:
             print(f"Error al guardar el reporte en RetroChatGPT: {e}")
         
+        reporte_individual = make_analysis(
+            data=datos_indicadores,
+            report='individual',
+            referencia='indicador'
+        )
+        
         print("ok9")
         # Debugging: Mostrar resultados
         """ print(f"Scores de Constructos: {scores_constructos}")

@@ -2,13 +2,15 @@ from django.http import HttpResponse
 from celery import shared_task
 from dotenv import load_dotenv
 
+from api.modul.GenerateAnalysGroups import generar_reporte_por_grupo
+
 from .models import CustomUser, Cuestionario, Indicador
 from api.modul.analysis import calcular_scores
 from celery import shared_task
 from api.models import DatosAplicacion
 from django.utils.timezone import now
 from django.contrib.auth.models import User
-from api.views import generar_reporte_por_grupo  # Importa tu función personalizada
+#from api.views import generar_reporte_por_grupo  # Importa tu función personalizada
 from django.core.mail import send_mail
 import logging
 import os
@@ -21,12 +23,13 @@ logger = logging.getLogger(__name__)
 from api.mails import enviar_correo_error, enviar_notificacion_por_correo
 
 DEFAULT_EMAILS = {
-    "carrera": "le1908017@merida.tecnm.mx",
-    "departamento": "departamento_user@example.com",
-    "institucion": "institucion_user@example.com",
+    "carrera": "le19080170@merida.tecnm.mx",
+    "departamento": "coordinador.sistemas@tecnm.mx",
+    "institucion": "le21080997@merida.tecnm.mx",
     "region": "region_user@example.com",
-    "nacion": "nacion_user@example.com",
+    #"nacion": "le21080997@merida.tecnm.mx",
 }
+
 """ 
 @shared_task
 def calcular_scores_task(user_id, aplicacion_id):
@@ -62,13 +65,14 @@ def check_and_generate_reports():
             # Loggear errores
             print(f"Error generando reporte para la aplicación {aplicacion.id}: {e}") """
 
-DEFAULT_EMAILS = {
+""" DEFAULT_EMAILS = {
     "carrera": "le19080170@merida.tecnm.mx",
     "departamento": "departamento_user@example.com",
     "institucion": "institucion_user@example.com",
     "region": "region_user@example.com",
     "nacion": "nacion_user@example.com",
-}
+    
+} """
 
 
 
@@ -132,3 +136,13 @@ def verificar_y_cerrar_aplicaciones():
 
     except Exception as e:
         logger.error(f"Error general en la tarea verificar_y_cerrar_aplicaciones: {e}")
+
+
+@shared_task
+def generar_reportes_aplicacion_task(aplicacion_id):
+    """
+    Tarea para generar reportes de todos los usuarios asignados a una aplicación.
+    """
+    from api.utils import generar_reportes_aplicacion
+    resultado = generar_reportes_aplicacion(aplicacion_id)
+    return resultado

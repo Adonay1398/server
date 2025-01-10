@@ -36,10 +36,10 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')
 #SECRET_KEY = 'django-insecure-&%$jrf&gk0ern1(!%=xmeh)$1f$)f6p*p!rm=xsmr$27g4^9-y'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG' , 'False') == 'True'
-#DEBUG = False
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS').split() #,'127.0.0.1:8000,server-prueba1.onrender.com').split(',')
-#ALLOWED_HOSTS=['127.0.0.1']
+#DEBUG = os.getenv('DEBUG' , 'False') == 'True'
+DEBUG = True
+#ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS').split() #,'127.0.0.1:8000,server-prueba1.onrender.com').split(',')
+ALLOWED_HOSTS=['127.0.0.1']
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ( 
@@ -122,7 +122,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL'),#,'postgresql://dbtutores_user:apdI1sFwvuBJZstb7g2A02J5j0TCcoMs@dpg-ctc4f49u0jms73cqloo0-a.oregon-postgres.render.com/dbtutores'),
+        default=os.getenv('DATABASE_URL','postgresql://dbtutores_user:apdI1sFwvuBJZstb7g2A02J5j0TCcoMs@dpg-ctc4f49u0jms73cqloo0-a.oregon-postgres.render.com/dbtutores'),
         conn_max_age=600,
     
     )

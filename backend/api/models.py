@@ -231,11 +231,15 @@ class Reporte(models.Model):
     texto_oportunidades = models.TextField(blank=True, null=True)
     fecha_generacion = models.DateTimeField(default=timezone.now)
     observaciones = models.TextField(blank=True, null=True)  # Asegúrate de que esta línea esté presente
-    usuario_generador = models.ForeignKey(CustomUser, on_delete=models.CASCADE, blank=True, null=True)
     #promedio_indicadores = models.TextField(blank=True, null=True)
     #promedio_constructos = models.TextField(blank=True, null=True)
     datos_promedios = models.JSONField(blank=True, null=True)  # Para guardar los promedios calculados
-
+    usuario_generador = models.ForeignKey(CustomUser, on_delete=models.CASCADE, blank=True, null=True)
+    
+    region = models.ForeignKey(Region, on_delete=models.SET_NULL, null=True, blank=True)
+    carrera = models.ForeignKey(Carrera, on_delete=models.SET_NULL, null=True, blank=True)
+    departamento = models.ForeignKey(Departamento, on_delete=models.SET_NULL, null=True, blank=True)
+    institucion = models.ForeignKey(Instituto, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         return f"Reporte {self.id} - {self.fecha_generacion}"

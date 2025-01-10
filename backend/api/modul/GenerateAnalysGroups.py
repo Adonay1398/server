@@ -1,6 +1,6 @@
 import json
 from django.contrib.auth.models import Group
-from api.models import  AsignacionCuestionario, Constructo, Cuestionario, CustomUser, Departamento, Indicador, IndicadorPromedio, Region, Instituto, Carrera, Reporte, ScoreIndicador, ScoreConstructo
+from api.models import  AsignacionCuestionario, Constructo, Cuestionario, CustomUser, DatosAplicacion, Departamento, Indicador, IndicadorPromedio, Region, Instituto, Carrera, Reporte, ScoreIndicador, ScoreConstructo
 from api.modul.openAI import make_analysis
 from django.utils.timezone import now
 from collections import defaultdict
@@ -328,6 +328,10 @@ def generar_reporte_por_grupo(usuario, aplicacion,cuestionario_id):
         texto3 = reporte.get("perfil", "").strip()
         print("ok-grupo 3")
         
+        carrera = usuario.carrera
+        departamento = carrera.departamento
+        institucion = departamento.instituto
+        region = institucion.region
 
         # Guardar el reporte en la base de datos
         Reporte.objects.create(
@@ -338,6 +342,10 @@ def generar_reporte_por_grupo(usuario, aplicacion,cuestionario_id):
             observaciones=texto3,
             fecha_generacion=now(),
             usuario_generador=usuario,
+            carrera=carrera,
+            departamento=departamento,
+            institucion=institucion,
+            region = region,
             datos_promedios=data   
         )
         print("ok-grupo 4")
@@ -351,4 +359,126 @@ def generar_reporte_por_grupo(usuario, aplicacion,cuestionario_id):
         return {
             "status": "error",
             "message": str(e)
+        }
+
+
+
+def generar_reportes_aplicacion(aplicacion_id):
+    """
+    Genera reportes para todos los usuarios asignados a los cuestionarios de una aplicación,
+    obteniendo scores de constructos e indicadores directamente de la base de datos.
+
+    Args:
+        aplicacion_id (int): ID de la aplicación cuyos reportes se generarán.
+
+    Returns:
+        dict: Resultado del proceso, incluyendo estadísticas de éxito y error.
+    """
+    try:
+        # Obtener la aplicación
+        aplicacion = DatosAplicacion.objects.get(cve_aplic=aplicacion_id)
+
+        # Obtener todas las asignaciones completadas para esta aplicación
+        asignaciones = AsignacionCuestionario.objects.filter(
+            aplicacion=aplicacion,
+            completado=True
+        )
+
+        if not asignaciones.exists():
+            return {
+                "status": "warning",
+                "message": f"No hay asignaciones completadas para la aplicación {aplicacion.cve_aplic}."
+            }
+
+        resultados = {"success": 0, "errors": 0, "details": []}
+
+        # Procesar cada asignación
+        for asignacion in asignaciones:
+            usuario = asignacion.usuario
+            cuestionario = asignacion.cuestionario
+
+            try:
+                # Obtener scores de constructos e indicadores para el usuario
+                scores_constructos = ScoreConstructo.objects.filter(
+                    usuario=usuario,
+                    aplicacion=aplicacion
+                ).distinct()
+
+                scores_indicadores = ScoreIndicador.objects.filter(
+                    usuario=usuario,
+                    aplicacion=aplicacion
+                ).distinct()
+
+                # Preparar las relaciones constructo-indicador
+                data = {}
+                for indicador_score in scores_indicadores:
+                    indicador_nombre = indicador_score.indicador.nombre
+                    if indicador_nombre not in data:
+                        data[indicador_nombre] = {
+                            "prom_score": indicador_score.score,
+                            "constructs": []
+                        }
+
+                for constructo_score in scores_constructos:
+                    constructo_nombre = constructo_score.constructo.descripcion
+                    for indicador in constructo_score.constructo.indicadores_set.all():
+                        if indicador.nombre in data:
+                            data[indicador.nombre]["constructs"].append({
+                                "nombre": constructo_nombre,
+                                "prom_score": constructo_score.score
+                            })
+
+                # Generar reporte con make_analysis
+                reporte = make_analysis(data=data, report="individual", referencia="indicador")
+
+                # Extraer resultados del análisis
+                texto1 = reporte.get("fortaleza", "").strip()
+                texto2 = reporte.get("oportunidad", "").strip()
+                texto3 = reporte.get("perfil", "").strip()
+
+                # Identificar relaciones jerárquicas
+                carrera = usuario.carrera
+                departamento = carrera.departamento
+                institucion = departamento.instituto
+                region = institucion.region
+
+                # Crear el reporte en la base de datos
+                Reporte.objects.create(
+                    nivel="individual",
+                    referencia_id=aplicacion.cve_aplic,
+                    texto_fortalezas=texto1,
+                    texto_oportunidades=texto2,
+                    observaciones=texto3,
+                    fecha_generacion=now(),
+                    usuario_generador=usuario,
+                    carrera=carrera,
+                    departamento=departamento,
+                    institucion=institucion,
+                    region=region,
+                    datos_promedios=data
+                )
+
+                resultados["success"] += 1
+            except Exception as e:
+                resultados["errors"] += 1
+                resultados["details"].append({
+                    "usuario": usuario.email,
+                    "error": str(e)
+                })
+
+        return {
+            "status": "completed",
+            "message": f"Proceso finalizado para la aplicación {aplicacion.cve_aplic}.",
+            "results": resultados
+        }
+
+    except DatosAplicacion.DoesNotExist:
+        return {
+            "status": "error",
+            "message": f"La aplicación con ID {aplicacion_id} no existe."
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Error inesperado: {str(e)}"
         }

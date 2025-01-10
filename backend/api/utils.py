@@ -1,10 +1,8 @@
 
-from .models import Carrera, CustomUser, Departamento #, IndicadorPromedio, ScoreIndicador
-from django.contrib.auth.models import Group
-from django.db.models import Avg
-from api.models import Carrera, Departamento, ScoreIndicador, IndicadorPromedio, CustomUser
 
 
+
+    
 
 def calculate_construct_score(responses, reverse_items=None, weights=None, method="sum", normalize=False):
     """
@@ -48,6 +46,7 @@ def calculate_construct_score(responses, reverse_items=None, weights=None, metho
 
 
     return score*100 
+
 
 
 """ 
@@ -168,4 +167,6 @@ def calcular_scores_tutor():
             )
         resultados[tutor.username] = promedios
 
+    
     return resultados """
+    

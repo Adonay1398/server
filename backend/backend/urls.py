@@ -50,8 +50,12 @@ urlpatterns = [
     path('user/personal-info/', CustomUserDetailView.as_view(), name='user-detail'),
     path('api/user-related-data-retro/<int:Cuestionario_id>/<int:aplicacion_id>/', UserRelatedDataRetroView.as_view(), name='user-related-data'),
     #path('user/related-data-reporte/', UserDataReporteView.as_view(), name='user-related-data'),
-    path('api/reporte-aplicacion/<int:cve_aplic>/', ReportePorAplicacionView.as_view(), name='reporte-por-aplicacion'),
+    path('api/reporte-aplicacion/<int:cve_aplic>/<str:tipo>/<int:valor>/', ReportePorAplicacionArgumentoView.as_view(), name='reporte-por-aplicacion-argumento'),
+    path('api/reporte-aplicacion/<int:cve_aplic>/',ReportePorAplicacionArgumentoView.as_view(),name='reporte_por_aplicacion'),
+    #path('api/reportes/aplicacion/<int:cve_aplic>/<str:tipo>/<int:valor>/',ReportePorAplicacionArgumentoView.as_view(),name='reporte_por_aplicacion_con_filtro'),
     path("api/informacion-jerarquica/", ObtenerInformacionJerarquica.as_view(), name="informacion_jerarquica"),
+    #path("reportes/<int:cve_aplic>/<str:jerarquia>/<str:valor>/", ReportePorArgumentosView.as_view(), name="filtrar_reportes"),
+    #path('reportes1/<int:cve_aplic>/<str:tipo>/<int:valor>/', ReportePorAplicacionArgumentoView.as_view(), name='reporte-aplicacion-argumento'),
 
     # Cuestionarios
     path('cuestionario/', CuestionarioListView.as_view(), name='cuestionario-list'),
