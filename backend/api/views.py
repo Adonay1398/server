@@ -9,7 +9,6 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, DjangoModelPer
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication   
 from rest_framework_simplejwt.views import TokenObtainPairView
-from django.core.exceptions import PermissionDenied
 
 from api.tasks import generar_reportes_aplicacion_task
 from .modul.GenerateAnalysGroups import generar_reporte_por_grupo
@@ -1952,6 +1951,7 @@ class ObtenerInformacionJerarquica(APIView):
         })
 
 
+from django.core.exceptions import PermissionDenied
 class ReportePorAplicacionArgumentoView(APIView):
     """
     Endpoint para obtener reportes filtrados por aplicación y un único argumento adicional
@@ -1986,9 +1986,9 @@ class ReportePorAplicacionArgumentoView(APIView):
                 examples={
                     "application/json": {
                         "detalle": {
-                            "texto_fortalezas": "Los tutores muestran un alto compromiso...",
-                            "texto_oportunidades": "Áreas de mejora incluyen interacción social...",
-                            "observaciones": "El análisis revela fortalezas y áreas de oportunidad...",
+                            "texto_fortalezas": "Fortalezas del reporte...",
+                            "texto_oportunidades": "Oportunidades del reporte...",
+                            "observaciones": "Observaciones relevantes...",
                             "datos_promedios": {
                                 "Personalidad": {
                                     "constructs": [
@@ -2023,9 +2023,24 @@ class ReportePorAplicacionArgumentoView(APIView):
                     }
                 }
             ),
-            400: "Error en la solicitud (parámetros inválidos)",
-            403: "Permiso denegado",
-            404: "Aplicación no encontrada",
+            400: openapi.Response(
+                description="Error en la solicitud",
+                examples={
+                    "application/json": {"error": "El tipo 'xyz' no es válido. Use 'Region', 'Instituto', 'Departamento', 'PlanEstudios' o 'Persona'."}
+                }
+            ),
+            403: openapi.Response(
+                description="Permiso denegado",
+                examples={
+                    "application/json": {"error": "No puedes consultar el mismo nivel al que perteneces."}
+                }
+            ),
+            404: openapi.Response(
+                description="Aplicación no encontrada",
+                examples={
+                    "application/json": {"error": "No se encontraron reportes para el grupo del usuario autenticado."}
+                }
+            ),
         }
     )
     def get(self, request, cve_aplic, tipo=None, valor=None):
@@ -2078,24 +2093,43 @@ class ReportePorAplicacionArgumentoView(APIView):
             nivel_index_usuario = niveles.index(nivel_grupo)
 
             if not tipo and not valor:
-                nivel_consultado = nivel_grupo
-                nivel_index_consultado = nivel_index_usuario
-            else:
-                nivel_consultado = {
-                    "region": "Coordinador de Tutorias a Nivel Region",
-                    "instituto": "Coordinador de Tutorias por Institucion",
-                    "departamento": "Coordinador de Tutorias por Departamento",
-                    "planestudios": "Coordinador de Plan de Estudios",
-                    "persona": "Tutores",
-                }.get(tipo.lower())
+                # Caso cuando no se pasan tipo ni valor
+                reportes = Reporte.objects.filter(referencia_id=cve_aplic, nivel=nivel_grupo)
+                if not reportes.exists():
+                    return Response({"error": "No se encontraron reportes para el grupo del usuario autenticado."},
+                                    status=status.HTTP_404_NOT_FOUND)
 
-                if not nivel_consultado:
-                    return Response(
-                        {"error": f"El tipo '{tipo}' no es válido. Use 'Region','Instituto','Departamento','PlanEstudios' o 'Persona'."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+                # Agregar solo el último reporte al resultado en este caso
+                reporte = reportes.last()
+                respuesta = {
+                    "texto_fortalezas": reporte.texto_fortalezas if reporte else "No data available",
+                    "texto_oportunidades": reporte.texto_oportunidades if reporte else "No data available",
+                    "observaciones": reporte.observaciones if reporte else "No data available",
+                    "datos_promedios": reporte.datos_promedios if reporte else {},
+                    "nivel": reporte.nivel if reporte else nivel_grupo,
+                    "usuario_generador": reporte.usuario_generador.email if reporte and reporte.usuario_generador else None,
+                    "institucion": reporte.institucion.nombre_completo if reporte and reporte.institucion else None,
+                    "departamento": reporte.departamento.nombre if reporte and reporte.departamento else None,
+                    "carrera": reporte.carrera.nombre if reporte and reporte.carrera else None,
+                }
+                return Response({"detalle": respuesta, "resultados": []}, status=status.HTTP_200_OK)
 
-                nivel_index_consultado = niveles.index(nivel_consultado)
+            # Continuar con la lógica normal para tipo y valor
+            nivel_consultado = {
+                "region": "Coordinador de Tutorias a Nivel Region",
+                "instituto": "Coordinador de Tutorias por Institucion",
+                "departamento": "Coordinador de Tutorias por Departamento",
+                "planestudios": "Coordinador de Plan de Estudios",
+                "persona": "Tutores",
+            }.get(tipo.lower())
+
+            if not nivel_consultado:
+                return Response(
+                    {"error": f"El tipo '{tipo}' no es válido. Use 'Region','Instituto','Departamento','PlanEstudios' o 'Persona'."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            nivel_index_consultado = niveles.index(nivel_consultado) - 1
 
             if nivel_index_consultado < nivel_index_usuario:
                 return Response(
@@ -2105,7 +2139,7 @@ class ReportePorAplicacionArgumentoView(APIView):
 
             # Retrieve and process reports for each level
             resultados = []
-            for nivel in niveles[nivel_index_usuario:nivel_index_consultado ]:
+            for nivel in niveles[nivel_index_usuario:nivel_index_consultado + 1]:
                 reportes = Reporte.objects.filter(referencia_id=cve_aplic, nivel=nivel)
                 if not reportes.exists():
                     continue
@@ -2141,7 +2175,6 @@ class ReportePorAplicacionArgumentoView(APIView):
             }
 
             return Response({
-                
                 "detalle": respuesta,
                 "resultados": resultados,
             }, status=status.HTTP_200_OK)
