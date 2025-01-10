@@ -226,39 +226,42 @@ class CuestionarioSerializer(serializers.ModelSerializer):
 
 
 
-
+""" 
 class UserRegistrationSerializer(serializers.ModelSerializer):
-    """
+    
     Serializador para el registro de un usuario genérico.
     Requiere confirmación de contraseña y asigna un grupo.
-    """
+    
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
     password2 = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'}, label="Confirm password")
     groups = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = CustomUser
-        fields = ['username', 'email', 'password', 'password2', 'groups']
+        fields = [ 'email', 'password', 'password2', 'groups','region','carrera','instituto']
 
     def validate(self, data):
-        """Valida que las contraseñas coincidan."""
+        Valida que las contraseñas coincidan.
         if data['password'] != data['password2']:
             raise serializers.ValidationError("Passwords do not match.")
         return data
 
     def create(self, validated_data):
-        """Crea un usuario y lo asigna al grupo especificado."""
+        Crea un usuario y lo asigna al grupo especificado
         group_name = validated_data.pop('groups', [])
         user = CustomUser.objects.create_user(
             username=validated_data['username'],
             password=validated_data['password'],
-            email=validated_data['email']
+            email=validated_data['email'].
+            region=validated_data['region'],
+            carrera=validated_data['carrera'],
+            instituto=validated_data['instituto']
         )
         group = Group.objects.get(name=group_name)
         user.groups.add(group)
         return user
 
-
+ """
 
 class TutorsRegistrationSerializer(serializers.ModelSerializer):
     """
@@ -331,7 +334,7 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
 
         try:
             # Obtener la aplicación con ID 4
-            aplicacion = DatosAplicacion.objects.get(pk=4)
+            aplicacion = DatosAplicacion.objects.get(pk=12)
             cuestionarios = aplicacion.cuestionario.all()  # Obtener todos los cuestionarios asociados
 
             if not cuestionarios.exists():

@@ -44,7 +44,7 @@ urlpatterns = [
     path('activar/', ActivarCuentaView.as_view(), name='activar_cuenta'),
 
     # User Management
-    path("api/create-user/", UserRegistrationView.as_view(), name="create_user"),
+    #path("api/create-user/", UserRegistrationView.as_view(), name="create_user"),
     path("api/create-tutor/", CreateTutorView.as_view(), name="register_user"),
     path('users/', CustomUserListView.as_view(), name='user-list'),
     path('user/personal-info/', CustomUserDetailView.as_view(), name='user-detail'),

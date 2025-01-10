@@ -56,7 +56,7 @@ def verificar_y_cerrar_aplicaciones():
                 if not cuestionarios.exists():
                     logger.warning(f"No cuestionarios asociados a la aplicación {aplicacion.cve_aplic}.")
                     continue
-                """
+                
                 for nivel, email in DEFAULT_EMAILS.items():
                     usuario = usuarios_dict.get(email)
                     if not usuario:
@@ -77,7 +77,7 @@ def verificar_y_cerrar_aplicaciones():
                     except Exception as e:
                         logger.error(f"Error inesperado al generar el reporte para nivel {nivel}: {e}")
                         enviar_correo_error(email, nivel, aplicacion, str(e))
-                    """
+                    
                 # Generar reportes para usuarios asignados a la aplicación
                 usuarios_asignados = CustomUser.objects.filter(asignaciones__aplicacion=aplicacion).distinct()
 

@@ -162,19 +162,18 @@ def generar_reporte_individual_por_tutor( usuario,aplicacion,cuestionario_id):
             print("ok-tutores-indiv 0")
             # Preparar datos para make_analysis
             data = {
-                indicador_score.indicador.nombre: {
-                    "prom_score": indicador_score.score,
+                indicador.nombre: {
+                    "prom_score": indicador.prom_score,
                     "constructs": [
                         {
-                            "nombre": constructo_score.constructo.descripcion,
-                            "prom_score": constructo_score.score
+                            "nombre": constructo.nombre,
+                            "prom_score": constructo.prom_score
                         }
-                        for constructo_score in scores_constructos
-                        if indicador_score.indicador in constructo_score.constructo.indicadores_set.all()
+                        for constructo in scores_constructos if constructo.indicador_id == indicador.id
                     ]
                 }
-                for indicador_score in scores_indicadores
-            }
+                for indicador in scores_indicadores
+                }
             print("ok-tutores-indiv 1")
             # Generar el reporte con make_analysis
             reporte = make_analysis(data=data, report="individual", referencia='indicador')

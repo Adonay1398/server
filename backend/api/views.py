@@ -33,40 +33,7 @@ from django.core.signing import SignatureExpired, BadSignature,TimestampSigner
 # USUARIOS
 # ==========================
 
-class UserRegistrationView(APIView):
-    """
-    Vista para el registro de nuevos usuarios.
-
-    Esta clase maneja las solicitudes HTTP POST para registrar nuevos usuarios en el sistema.
-    
-    Atributos:
-        queryset (QuerySet): Conjunto de consultas para todos los usuarios personalizados.
-        serializer_class (Serializer): Clase de serializador para validar y guardar los datos del usuario.
-    """
-    queryset = CustomUser.objects.all()
-    serializer_class = UserRegistrationSerializer
-    def post(self, request, *args, **kwargs):
-        """
-            Maneja las solicitudes POST para registrar un nuevo usuario.
-
-            Este método recibe los datos del usuario desde la solicitud, los valida utilizando
-            el serializador correspondiente y, si son válidos, crea un nuevo registro de usuario.
-
-            Args:
-                request (Request): Objeto de solicitud que contiene los datos del usuario a registrar.
-                *args: Argumentos adicionales.
-                **kwargs: Argumentos de palabra clave adicionales.
-
-            Returns:
-                Response: Respuesta HTTP con los datos del usuario registrado y un código de estado 201 si la
-                        creación es exitosa, o con los errores de validación y un código de estado 400 si
-                        la validación falla.
-        """
-        serializer = UserRegistrationSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+"""  """
 
 class  CustomUserListView(generics.ListCreateAPIView):
     """
