@@ -40,11 +40,12 @@ def obtener_tutores_por_grupo(usuario):
         elif grupo.name == "Coordinador de Tutorias a Nivel Nacional":
             tutores = CustomUser.objects.filter(groups__name="Tutores")  # A nivel nacional, obtenemos todos los tutores
             
+        
+        elif grupo.name == "Tutores":
+            tutores = CustomUser.objects.filter(user=usuario)  # Solo el tutor actual
         else:
             raise ValueError("El grupo del usuario no está definido para esta operación.")
-        """ elif grupo.name == "Tutores":
-            tutores = CustomUser.objects.filter(user=usuario)  # Solo el tutor actual
-        """
+        
         
         
 
@@ -57,134 +58,6 @@ def obtener_tutores_por_grupo(usuario):
     
     
 
-
-""" def calcular_scores_tutores(tutores, aplicacion,cuestionario, usuario):
-    
-    Calcula y guarda los promedios generales de constructos e indicadores para los tutores,
-    y los guarda en la tabla Reporte.
-
-    Args:
-        tutores (QuerySet): QuerySet de los tutores.
-        aplicacion (DatosAplicacion): Aplicación actual.
-        cuestionario_id (int): ID del cuestionario relacionado.
-        usuario (CustomUser): Usuario que realiza la consulta.
-
-    Returns:
-        dict: Diccionario con los promedios de constructos e indicadores.
-    
-    indicadores_totales = defaultdict(list)
-    constructos_totales = defaultdict(list)
-    constructo_indicador_relaciones = defaultdict(lambda: defaultdict(list))
-
-    try:
-        with transaction.atomic():  # Asegurar la consistencia en los datos
-            for tutor in tutores:
-                # Obtener scores de constructos e indicadores
-                scores_constructos = ScoreConstructo.objects.filter(
-                    usuario=tutor,
-                    aplicacion=aplicacion
-                ).distinct()
-
-                scores_indicadores = ScoreIndicador.objects.filter(
-                    usuario=tutor,
-                    aplicacion=aplicacion
-                ).distinct()
-
-                # Acumular scores por indicador y constructo
-                for score in scores_indicadores:
-                    indicadores_totales[score.indicador.nombre].append(score.score)
-
-                for score in scores_constructos:
-                    if not isinstance(score.constructo, Constructo):
-                        raise ValueError(f"'{score.constructo}' no es una instancia válida de Constructo.")
-
-                    for indicador in score.constructo.indicadores_set.all():
-                        # Acumular scores para constructos bajo el indicador
-                        constructo_indicador_relaciones[indicador.nombre][score.constructo.descripcion].append(score.score)
-                
-            print("ok-tutores 1")
-            # Calcular promedios generales
-            promedios_indicadores = [
-                {
-                    "nombre": indicador,
-                    "prom_score": int(
-                        sum(score for constructo_scores in constructos.values() for score in constructo_scores) /
-                        sum(len(constructo_scores) for constructo_scores in constructos.values())
-                    ),
-                    "constructos": [
-                        {
-                            "nombre": constructo,
-                            "prom_score": int(sum(constructo_scores) / len(constructo_scores))
-                        }
-                        for constructo, constructo_scores in constructos.items()
-                    ]
-                }
-                for indicador, constructos in constructo_indicador_relaciones.items()
-            ]
-            
-            print("ok-tutores 2")
-            # Guardar resultados en la tabla Reporte
-            #Reporte.objects.create(
-            #nivel="departamento",
-            #referencia_id=cuestionario,   # O el ID de referencia correspondiente
-            #usuario_generador=usuario,
-            #promedio_indicadores=(promedios_indicadores),
-            #promedio_constructos=(promedios_constructos),
-            #promedio_indicadores=(promedios_indicadores),
-
-            #fecha_generacion=now(),
-
-    except Exception as e:
-        print(f"Error al calcular y guardar los promedios: {e}")
-        raise
-    return {
-        "promedios_indicadores": promedios_indicadores,
-    } """
-    
-""" def normalizar_palabra(palabra):
-    
-    #Normaliza una palabra eliminando acentos, signos de puntuación y espacios innecesarios.
-    
-    return ''.join(
-        c for c in unicodedata.normalize('NFD', palabra)
-        if unicodedata.category(c) != 'Mn'
-    ).lower().strip()
-
-def procesar_datos_indicadores(datos):
-    
-    Procesa los indicadores, corrige nombres mal escritos y calcula promedios para los repetidos.
-
-    Args:
-        datos (dict): Diccionario con indicadores y sus valores.
-
-    Returns:
-        dict: Diccionario con nombres únicos y valores ajustados (promedios para repetidos).
-    
-    if not isinstance(datos, dict):
-        raise ValueError("Se esperaba un diccionario, pero se recibió: {}".format(type(datos)))
-
-    # Agrupamos los nombres normalizados
-    normalizados = defaultdict(list)
-
-    # Agrupar por nombre normalizado
-    for nombre, score in datos.items():
-        nombre_normalizado = normalizar_palabra(nombre)
-        normalizados[nombre_normalizado].append((nombre, score))
-
-    # Construir el resultado final
-    resultado = {}
-    for nombre_normalizado, items in normalizados.items():
-        if len(items) > 1:
-            # Hay duplicados, tomamos el nombre más frecuente y calculamos el promedio
-            nombre_correccion = max(items, key=lambda x: x[1])[0]  # Nombre con el score más alto
-            promedio_score = sum(score for _, score in items) // len(items)
-            resultado[nombre_correccion] = promedio_score
-        else:
-            # No hay duplicados, se usa el original
-            nombre_original, score = items[0]
-            resultado[nombre_original] = score
-
-    return resultado """
 
 def calcular_scores_tutores(tutores, aplicacion, cuestionario, usuario):
     """
@@ -264,6 +137,82 @@ def calcular_scores_tutores(tutores, aplicacion, cuestionario, usuario):
         "promedios_indicadores": promedios_indicadores
     }
 
+def generar_reporte_individual_por_tutor( usuario,aplicacion,cuestionario_id):
+    """
+    Genera reportes individuales para cada tutor relacionado con la aplicación.
+
+    Args:
+        tutores (QuerySet): Lista de tutores relacionados.
+        usuario (CustomUser): Usuario autenticado.
+        aplicacion (DatosAplicacion): Aplicación actual.
+        cuestionario_id (int): ID del cuestionario asociado.
+
+    Returns:
+        dict: Resultado del proceso de generación.
+    """
+    resultados = {"success": 0, "errors": 0, "details": []}
+
+    grupo = usuario.groups.first().name
+
+    
+    try:
+        # Calcular los scores del tutor
+            scores_constructos = ScoreConstructo.objects.filter(usuario=usuario, aplicacion=aplicacion.cve_aplic).distinct()
+            scores_indicadores = ScoreIndicador.objects.filter(usuario=usuario, aplicacion=aplicacion.cve_aplic).distinct()
+            print("ok-tutores-indiv 0")
+            # Preparar datos para make_analysis
+            data = {
+                indicador_score.indicador.nombre: {
+                    "prom_score": indicador_score.score,
+                    "constructs": [
+                        {
+                            "nombre": constructo_score.constructo.descripcion,
+                            "prom_score": constructo_score.score
+                        }
+                        for constructo_score in scores_constructos
+                        if indicador_score.indicador in constructo_score.constructo.indicadores_set.all()
+                    ]
+                }
+                for indicador_score in scores_indicadores
+            }
+            print("ok-tutores-indiv 1")
+            # Generar el reporte con make_analysis
+            reporte = make_analysis(data=data, report="individual", referencia='indicador')
+            print("ok-tutores-indiv 2")
+            # Extraer texto del análisis
+            texto1 = reporte.get("fortaleza", "").strip()
+            texto2 = reporte.get("oportunidad", "").strip()
+            texto3 = reporte.get("perfil", "").strip()
+            print("ok-tutores-indiv 3")
+            # Guardar solo hasta el nivel del usuario
+            
+            print("ok-tutores-indiv 4")
+            # Crear el reporte en la base de datos
+            Reporte.objects.create(
+                nivel="Tutores",
+                referencia_id=aplicacion.cve_aplic,
+                texto_fortalezas=texto1,
+                texto_oportunidades=texto2,
+                observaciones=texto3,
+                fecha_generacion=now(),
+                usuario_generador=usuario,
+                carrera=usuario.carrera if hasattr(usuario, 'carrera') and usuario.carrera else None,
+                departamento=usuario.departamento if hasattr(usuario, 'departamento') and usuario.departamento else None,
+                institucion=usuario.instituto if hasattr(usuario, 'instituto') and usuario.instituto else None,
+                region=usuario.region if hasattr(usuario, 'region') and usuario.region else None,
+                datos_promedios=data
+            )
+            print("ok-tutores-indiv 5")
+            return {
+            "status": "success",
+            "message": "Reporte generado correctamente."
+        }
+    except Exception as e:
+        logger.error(f"Error al generar el reporte: {e}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
 
 def generar_reporte_por_grupo(usuario, aplicacion,cuestionario_id):
     """
@@ -313,11 +262,9 @@ def generar_reporte_por_grupo(usuario, aplicacion,cuestionario_id):
         print("Report type:", report)
         print("ok-grupo 0")
         # Generar el reporte con make_analysis
-        try:
-            reporte = make_analysis(data=data, report=report, referencia='indicador')
-        except json.JSONDecodeError:
-            print("Error decoding JSON response")
-            raise ValueError("The API returned an invalid response.")
+        
+        reporte = make_analysis(data=data, report=report, referencia='indicador')
+        
         print("Reporte generado:")
         #print(dict(reporte))
         print("ok-grupo 2")
@@ -328,11 +275,12 @@ def generar_reporte_por_grupo(usuario, aplicacion,cuestionario_id):
         texto3 = reporte.get("perfil", "").strip()
         print("ok-grupo 3")
         
-        carrera = usuario.carrera
-        departamento = carrera.departamento
-        institucion = departamento.instituto
-        region = institucion.region
+        """ carrera = usuario.carrera if grupo == "Coordinador de Plan de Estudios" else None
+        departamento = carrera.departamento if grupo in ["Coordinador de Tutorias por Departamento"] else None
+        institucion = departamento.instituto if grupo in ["Coordinador de Tutorias por Institucion", "Coordinador de Tutorias por Departamento", "Coordinador de Plan de Estudios"] else None
+        region = institucion.region if grupo in ["Coordinador de Tutorias a Nivel Regional", "Coordinador de Tutorias por Institucion", "Coordinador de Tutorias por Departamento", "Coordinador de Plan de Estudios"] else None
 
+        """
         # Guardar el reporte en la base de datos
         Reporte.objects.create(
             nivel=grupo,
@@ -342,12 +290,13 @@ def generar_reporte_por_grupo(usuario, aplicacion,cuestionario_id):
             observaciones=texto3,
             fecha_generacion=now(),
             usuario_generador=usuario,
-            carrera=carrera,
-            departamento=departamento,
-            institucion=institucion,
-            region = region,
-            datos_promedios=data   
+            carrera=usuario.carrera if hasattr(usuario, 'carrera') and usuario.carrera else None,
+            departamento=usuario.departamento if hasattr(usuario, 'departamento') and usuario.departamento else None,
+            institucion=usuario.instituto if hasattr(usuario, 'instituto') and usuario.instituto else None,
+            region=usuario.region if hasattr(usuario, 'region') and usuario.region else None,
+            datos_promedios=data
         )
+
         print("ok-grupo 4")
         print("Reporte guardado exitosamente.")
         return {

@@ -61,6 +61,9 @@ class CustomUser(AbstractUser):
         max_length=150, unique=True, blank=True, null=True
     )
     fecha_nacimiento = models.DateField(null=True, blank=True)
+    Region = models.ForeignKey(Region, on_delete=models.SET_NULL, null=True, blank=True)
+    instituto = models.ForeignKey(Instituto, on_delete=models.SET_NULL, null=True, blank=True)
+    departamento = models.ForeignKey(Departamento, on_delete=models.SET_NULL, null=True, blank=True)
     carrera = models.ForeignKey(Carrera, on_delete=models.SET_NULL, null=True, blank=True)
     aplicacion = models.ForeignKey('DatosAplicacion', on_delete=models.SET_NULL, null=True, blank=True)
     groups = models.ManyToManyField(

@@ -798,3 +798,11 @@ class RelacionCuestionarioAplicacionSerializer(serializers.Serializer):
         cuestionario = Cuestionario.objects.get(cve_cuestionario=validated_data['cuestionario_id'])
         aplicacion.cuestionario.remove(cuestionario)
         return {"message": "Relación eliminada exitosamente."}
+
+
+
+class UserRelationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'email', 'carrera','departamento','instituto','Region']  # Incluye solo los campos relevantes
+        read_only_fields = ['id', 'email']  # Campos que no deben ser modificados

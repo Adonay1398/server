@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, time
+from django import forms
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from marshmallow import ValidationError
@@ -10,7 +11,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication   
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from api.tasks import generar_reportes_aplicacion_task
+
 from .modul.GenerateAnalysGroups import generar_reporte_por_grupo
 from .modul.analysis import calcular_scores
 from drf_yasg.utils import swagger_auto_schema
@@ -1952,13 +1953,148 @@ class ObtenerInformacionJerarquica(APIView):
 
 
 from django.core.exceptions import PermissionDenied
-class ReportePorAplicacionArgumentoView(APIView):
+class ReportePorAplicacionArgumento1View(APIView):
     """
     Endpoint para obtener reportes filtrados por aplicación y un único argumento adicional
     (Instituto, Departamento, Carrera, o Usuario). Si no se proporciona argumento adicional,
     devuelve el reporte del grupo al que pertenece el usuario autenticado.
     """
     permission_classes = [IsAuthenticated]
+
+    def get(self, request, cve_aplic, tipo=None, valor=None):
+        try:
+            # Validar que la aplicación existe
+            aplicacion = get_object_or_404(DatosAplicacion, pk=cve_aplic)
+
+            # Verificar si la aplicación está cerrada
+            if aplicacion.fecha_fin is None:
+                return Response({"error": "La aplicación aún no ha finalizado."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Obtener grupo del usuario
+            grupo_usuario = request.user.groups.first()
+            if not grupo_usuario:
+                return Response({"error": "El usuario no pertenece a ningún grupo."}, status=status.HTTP_403_FORBIDDEN)
+
+            # Mapear grupo del usuario a nivel
+            nivel_grupo = {
+                "Coordinador de Tutorias a Nivel Nacional": "nacional",
+                "Coordinador de Tutorias a Nivel Regional": "region",
+                "Coordinador de Tutorias por Institucion": "institucion",
+                "Coordinador de Tutorias por Departamento": "departamento",
+                "Coordinador de Plan de Estudios": "plan_estudios",
+                "Tutores": "individual",
+            }.get(grupo_usuario.name)
+
+            if not nivel_grupo:
+                return Response({"error": f"El grupo '{grupo_usuario.name}' no tiene un nivel asignado."},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            # Validar jerarquías según relaciones
+            if tipo and nivel_grupo == {
+                "region": "region",
+                "instituto": "institucion",
+                "departamento": "departamento",
+                "carrera": "plan_estudios",
+                "usuario": "individual",
+            }.get(tipo.lower()):
+                return Response({"error": "No puedes consultar el mismo nivel al que perteneces."},
+                                status=status.HTTP_403_FORBIDDEN)
+
+            # Filtrar reportes según tipo y valor
+            if tipo and valor:
+                filtros = {
+                    "region": {"region_id": valor},
+                    "instituto": {"institucion_id": valor},
+                    "departamento": {"departamento_id": valor},
+                    "carrera": {"carrera_id": valor},
+                    "usuario": {"usuario_generador_id": valor},
+                }.get(tipo.lower(), None)
+
+                if not filtros:
+                    return Response(
+                        {"error": f"El tipo '{tipo}' no es válido. Use 'Region', 'Instituto', 'Departamento', 'Carrera' o 'Usuario'."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                reportes = Reporte.objects.filter(referencia_id=cve_aplic, **filtros)
+            else:
+                # Si no hay filtros, devolver reportes para el nivel del usuario
+                reportes = Reporte.objects.filter(referencia_id=cve_aplic, nivel=nivel_grupo)
+
+            # Si no se encuentran reportes
+            if not reportes.exists():
+                return Response({"error": "No se encontraron reportes para los criterios proporcionados."},
+                                status=status.HTTP_404_NOT_FOUND)
+
+            # Agregar resultados de promedios y otros detalles
+            resultados = []
+            for reporte in reportes:
+                promedios = reporte.datos_promedios or {}
+                resultados.append({
+                    "nivel": reporte.nivel,
+                    "promedios_indicadores": promedios
+                })
+
+            # Respuesta con detalles del último reporte
+            ultimo_reporte = reportes.last()
+            detalle = {
+                "texto_fortalezas": ultimo_reporte.texto_fortalezas if ultimo_reporte else "No data available",
+                "texto_oportunidades": ultimo_reporte.texto_oportunidades if ultimo_reporte else "No data available",
+                "observaciones": ultimo_reporte.observaciones if ultimo_reporte else "No data available",
+                "datos_promedios": ultimo_reporte.datos_promedios if ultimo_reporte else {},
+                "nivel": ultimo_reporte.nivel if ultimo_reporte else nivel_grupo,
+                "usuario_generador": ultimo_reporte.usuario_generador.email if ultimo_reporte and ultimo_reporte.usuario_generador else None,
+                "institucion": ultimo_reporte.institucion.nombre_completo if ultimo_reporte and ultimo_reporte.institucion else None,
+                "departamento": ultimo_reporte.departamento.nombre if ultimo_reporte and ultimo_reporte.departamento else None,
+                "carrera": ultimo_reporte.carrera.nombre if ultimo_reporte and ultimo_reporte.carrera else None,
+            }
+
+            return Response({
+                "detalle": detalle,
+                "resultados": resultados,
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": f"Error interno del servidor: {str(e)}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            
+
+class UserRelationUpdateAPIView(APIView):
+    """
+    API para actualizar las relaciones jerárquicas de un usuario.
+    """
+    def put(self, request, pk, *args, **kwargs):
+        """
+        Actualiza las relaciones de carrera, departamento, instituto y región para un usuario.
+        """
+        try:
+            user = CustomUser.objects.get(pk=pk)  # Obtener el usuario por ID
+        except CustomUser.DoesNotExist:
+            return Response({"error": "El usuario no existe."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = UserRelationSerializer(user, data=request.data, partial=True)  # Validar los datos
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                "status": "success",
+                "message": "Relaciones actualizadas correctamente.",
+                "data": serializer.data
+            }, status=status.HTTP_200_OK)
+        return Response({
+            "status": "error",
+            "message": "Datos inválidos.",
+            "errors": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+        
+#AQUI
+class ReportePorAplicacionArgumento4View(APIView):
+    """
+    Endpoint para obtener reportes filtrados por aplicación y un único argumento adicional
+    (Instituto, Departamento, Carrera, o Usuario).
+    """
+    permission_classes = [IsAuthenticated]
+
     @swagger_auto_schema(
         manual_parameters=[
             openapi.Parameter(
@@ -1969,7 +2105,7 @@ class ReportePorAplicacionArgumentoView(APIView):
             ),
             openapi.Parameter(
                 'tipo', openapi.IN_QUERY,
-                description="Tipo de filtro (region, instituto, departamento, planestudios, persona)",
+                description="Tipo de filtro (region, instituto, departamento, planestudios, tutor)",
                 type=openapi.TYPE_STRING,
                 required=False
             ),
@@ -1981,89 +2117,34 @@ class ReportePorAplicacionArgumentoView(APIView):
             ),
         ],
         responses={
-            200: openapi.Response(
-                description="Reporte obtenido con éxito",
-                examples={
-                    "application/json": {
-                        "detalle": {
-                            "texto_fortalezas": "Fortalezas del reporte...",
-                            "texto_oportunidades": "Oportunidades del reporte...",
-                            "observaciones": "Observaciones relevantes...",
-                            "datos_promedios": {
-                                "Personalidad": {
-                                    "constructs": [
-                                        {"nombre": "Escrupulosidad", "prom_score": 90},
-                                        {"nombre": "Amabilidad", "prom_score": 80}
-                                    ],
-                                    "prom_score": 85
-                                }
-                            },
-                            "nivel": "Coordinador de Plan de Estudios",
-                            "usuario_generador": "usuario@ejemplo.com",
-                            "institucion": "Instituto Tecnológico de Ejemplo",
-                            "departamento": "Sistemas Computacionales",
-                            "carrera": "Ingeniería en Sistemas Computacionales"
-                        },
-                        "resultados": [
-                            {
-                                "nivel": "Coordinador de Tutorias por Institucion",
-                                "promedios_indicadores": {
-                                    "indicator_1": 75.0,
-                                    "indicator_2": 85.0
-                                }
-                            },
-                            {
-                                "nivel": "Coordinador de Plan de Estudios",
-                                "promedios_indicadores": {
-                                    "indicator_1": 65.0,
-                                    "indicator_2": 70.0
-                                }
-                            }
-                        ]
-                    }
-                }
-            ),
-            400: openapi.Response(
-                description="Error en la solicitud",
-                examples={
-                    "application/json": {"error": "El tipo 'xyz' no es válido. Use 'Region', 'Instituto', 'Departamento', 'PlanEstudios' o 'Persona'."}
-                }
-            ),
-            403: openapi.Response(
-                description="Permiso denegado",
-                examples={
-                    "application/json": {"error": "No puedes consultar el mismo nivel al que perteneces."}
-                }
-            ),
-            404: openapi.Response(
-                description="Aplicación no encontrada",
-                examples={
-                    "application/json": {"error": "No se encontraron reportes para el grupo del usuario autenticado."}
-                }
-            ),
+            200: openapi.Response(description="Reporte obtenido con éxito"),
+            400: openapi.Response(description="Error en la solicitud"),
+            403: openapi.Response(description="Permiso denegado"),
+            404: openapi.Response(description="Aplicación no encontrada"),
         }
     )
+    
     def get(self, request, cve_aplic, tipo=None, valor=None):
         try:
-            # Validate the application exists
+            # Validar que la aplicación existe
             aplicacion = get_object_or_404(DatosAplicacion, pk=cve_aplic)
 
-            # Check if the application is closed
             if aplicacion.fecha_fin is None:
                 return Response({"error": "La aplicación aún no ha finalizado."}, status=status.HTTP_400_BAD_REQUEST)
 
+            # Obtener el grupo del usuario
             grupo_usuario = request.user.groups.first()
             if not grupo_usuario:
                 return Response({"error": "El usuario no pertenece a ningún grupo."}, status=status.HTTP_403_FORBIDDEN)
 
-            # Map user group to level
+            # Mapear los niveles
             nivel_grupo = {
-                "Coordinador de Tutorias a Nivel Nacional": "Coordinador de Tutorias a Nivel Nacional",
-                "Coordinador de Tutorias a Nivel Regional": "Coordinador de Tutorias a Nivel Region",
-                "Coordinador de Tutorias por Institucion": "Coordinador de Tutorias por Institucion",
-                "Coordinador de Tutorias por Departamento": "Coordinador de Tutorias por Departamento",
-                "Coordinador de Plan de Estudios": "Coordinador de Plan de Estudios",
-                "Tutores": "Tutores",
+                "Coordinador de Tutorias a Nivel Nacional": "region",
+                "Coordinador de Tutorias a Nivel Regional": "region",
+                "Coordinador de Tutorias por Institucion": "instituto",
+                "Coordinador de Tutorias por Departamento": "departamento",
+                "Coordinador de Plan de Estudios": "planestudios",
+                "Tutores": "tutor",
             }.get(grupo_usuario.name)
 
             if not nivel_grupo:
@@ -2072,85 +2153,104 @@ class ReportePorAplicacionArgumentoView(APIView):
 
             niveles = [
                 "Coordinador de Tutorias a Nivel Nacional",
-                "Coordinador de Tutorias a Nivel Region",
+                "Coordinador de Tutorias a Nivel Regional",
                 "Coordinador de Tutorias por Institucion",
                 "Coordinador de Tutorias por Departamento",
                 "Coordinador de Plan de Estudios",
                 "Tutores"
             ]
 
-            # Validar si la consulta coincide con el nivel del grupo del usuario
-            if tipo and nivel_grupo == {
-                "region": "Coordinador de Tutorias a Nivel Region",
-                "instituto": "Coordinador de Tutorias por Institucion",
-                "departamento": "Coordinador de Tutorias por Departamento",
-                "planestudios": "Coordinador de Plan de Estudios",
-                "persona": "Tutores",
-            }.get(tipo.lower()):
-                return Response({"error": "No puedes consultar el mismo nivel al que perteneces."},
-                                status=status.HTTP_403_FORBIDDEN)
+            # Validar que no se consulte el mismo nivel del grupo del usuario
+            if tipo and tipo.lower() == nivel_grupo:
+                return Response(
+                    {"error": "No puedes consultar reportes del mismo nivel al que perteneces."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
 
-            nivel_index_usuario = niveles.index(nivel_grupo)
+            nivel_index_usuario = niveles.index(grupo_usuario.name)
 
+            # Caso 1: Consulta sin tipo ni valor (reporte asociado al usuario actual)
             if not tipo and not valor:
-                # Caso cuando no se pasan tipo ni valor
-                reportes = Reporte.objects.filter(referencia_id=cve_aplic, nivel=nivel_grupo)
+                reportes = Reporte.objects.filter(referencia_id=cve_aplic, nivel=grupo_usuario.name)
                 if not reportes.exists():
                     return Response({"error": "No se encontraron reportes para el grupo del usuario autenticado."},
                                     status=status.HTTP_404_NOT_FOUND)
 
-                # Agregar solo el último reporte al resultado en este caso
+                # Obtener el último reporte
                 reporte = reportes.last()
                 respuesta = {
-                    "texto_fortalezas": reporte.texto_fortalezas if reporte else "No data available",
-                    "texto_oportunidades": reporte.texto_oportunidades if reporte else "No data available",
-                    "observaciones": reporte.observaciones if reporte else "No data available",
-                    "datos_promedios": reporte.datos_promedios if reporte else {},
-                    "nivel": reporte.nivel if reporte else nivel_grupo,
-                    "usuario_generador": reporte.usuario_generador.email if reporte and reporte.usuario_generador else None,
-                    "institucion": reporte.institucion.nombre_completo if reporte and reporte.institucion else None,
-                    "departamento": reporte.departamento.nombre if reporte and reporte.departamento else None,
-                    "carrera": reporte.carrera.nombre if reporte and reporte.carrera else None,
+                    "texto_fortalezas": reporte.texto_fortalezas ,
+                    "texto_oportunidades": reporte.texto_oportunidades ,
+                    "observaciones": reporte.observaciones,
+                    "datos_promedios": reporte.datos_promedios ,
+                    "nivel": reporte.nivel ,
+                    "usuario_generador": reporte.usuario_generador.email ,
+                    "institucion": reporte.institucion.nombre_completo if reporte.institucion else None,
+                    "departamento": reporte.departamento.nombre  if reporte.departamento else None,
+                    "carrera": reporte.carrera.nombre if reporte.carrera else None,
                 }
                 return Response({"detalle": respuesta, "resultados": []}, status=status.HTTP_200_OK)
 
-            # Continuar con la lógica normal para tipo y valor
             nivel_consultado = {
-                "region": "Coordinador de Tutorias a Nivel Region",
+                "region": "Coordinador de Tutorias a Nivel Regional",
                 "instituto": "Coordinador de Tutorias por Institucion",
                 "departamento": "Coordinador de Tutorias por Departamento",
                 "planestudios": "Coordinador de Plan de Estudios",
-                "persona": "Tutores",
+                "tutor": "Tutores",
             }.get(tipo.lower())
 
             if not nivel_consultado:
                 return Response(
-                    {"error": f"El tipo '{tipo}' no es válido. Use 'Region','Instituto','Departamento','PlanEstudios' o 'Persona'."},
+                    {"error": f"El tipo '{tipo}' no es válido. Use 'region', 'instituto', 'departamento', 'planestudios' o 'tutor'."},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            nivel_index_consultado = niveles.index(nivel_consultado) - 1
-
+            # Validar jerarquía entre nivel del usuario y nivel consultado
+            nivel_index_consultado = niveles.index(nivel_consultado)-1
             if nivel_index_consultado < nivel_index_usuario:
                 return Response(
                     {"error": "No tienes permiso para consultar niveles superiores a tu jerarquía."},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-            # Retrieve and process reports for each level
+            # Caso 2: Consulta con tipo y valor
+            filtros = {
+                "region": lambda: Reporte.objects.filter(referencia_id=cve_aplic, region=get_object_or_404(Region, pk=valor)),
+                "instituto": lambda: Reporte.objects.filter(referencia_id=cve_aplic, institucion=get_object_or_404(Instituto, pk=valor)),
+                "departamento": lambda: Reporte.objects.filter(referencia_id=cve_aplic, departamento=get_object_or_404(Departamento, pk=valor)),
+                "planestudios": lambda: Reporte.objects.filter(referencia_id=cve_aplic, carrera=get_object_or_404(Carrera, pk=valor)),
+                "tutor": lambda: Reporte.objects.filter(referencia_id=cve_aplic, usuario_generador=get_object_or_404(CustomUser, pk=valor)),
+            }
+
+            if tipo.lower() not in filtros:
+                return Response({"error": f"El tipo '{tipo}' no es válido."}, status=status.HTTP_400_BAD_REQUEST)
+
+            reportes_consultados = filtros[tipo.lower()]()
+            if not reportes_consultados.exists():
+                return Response({"error": "No se encontraron reportes para el filtro especificado."},
+                                status=status.HTTP_404_NOT_FOUND)
+
+            # Obtener reportes del grupo que hizo la consulta
+            reportes_usuario = Reporte.objects.filter(referencia_id=cve_aplic, nivel=grupo_usuario.name)
+            if not reportes_usuario.exists():
+                return Response({"error": "No se encontraron reportes para el grupo del usuario autenticado."},
+                                status=status.HTTP_404_NOT_FOUND)
+
+            # Procesar reportes entre niveles
             resultados = []
             for nivel in niveles[nivel_index_usuario:nivel_index_consultado + 1]:
                 reportes = Reporte.objects.filter(referencia_id=cve_aplic, nivel=nivel)
                 if not reportes.exists():
                     continue
 
+                # Calcular promedios de indicadores por nivel
                 promedios_indicadores = defaultdict(list)
                 for reporte in reportes:
                     if reporte.datos_promedios:
                         for indicador, data in reporte.datos_promedios.items():
                             promedios_indicadores[indicador].append(data["prom_score"])
 
-                # Aggregate scores
+                # Agregar los promedios agregados al resultado
                 aggregated_scores = {
                     indicador: sum(scores) / len(scores) for indicador, scores in promedios_indicadores.items()
                 }
@@ -2159,24 +2259,23 @@ class ReportePorAplicacionArgumentoView(APIView):
                     "promedios_indicadores": aggregated_scores
                 })
 
-            # Get the last report for detailed data
-            reporte = reportes.last() if reportes.exists() else None
-
-            respuesta = {
-                "texto_fortalezas": reporte.texto_fortalezas if reporte else "No data available",
-                "texto_oportunidades": reporte.texto_oportunidades if reporte else "No data available",
-                "observaciones": reporte.observaciones if reporte else "No data available",
-                "datos_promedios": reporte.datos_promedios if reporte else {},
-                "nivel": reporte.nivel if reporte else nivel_grupo,
-                "usuario_generador": reporte.usuario_generador.email if reporte and reporte.usuario_generador else None,
-                "institucion": reporte.institucion.nombre_completo if reporte and reporte.institucion else None,
-                "departamento": reporte.departamento.nombre if reporte and reporte.departamento else None,
-                "carrera": reporte.carrera.nombre if reporte and reporte.carrera else None,
+            # Obtener el último reporte del grupo del usuario
+            reporte_usuario = reportes_usuario.last()
+            respuesta_usuario = {
+                "texto_fortalezas": reporte.texto_fortalezas ,
+                "texto_oportunidades": reporte.texto_oportunidades ,
+                "observaciones": reporte.observaciones ,
+                "datos_promedios": reporte.datos_promedios ,
+                "nivel": reporte.nivel ,
+                #"usuario_generador": reporte_usuario.usuario_generador.email if reporte_usuario and reporte_usuario.usuario_generador else None,
+                "institucion": reporte.institucion.nombre_completo if reporte.institucion else None,
+                "departamento": reporte.departamento.nombre if reporte.departamento else None,
+                "carrera": reporte.carrera.nombre  if reporte.carrera else None,
             }
 
             return Response({
-                "detalle": respuesta,
-                "resultados": resultados,
+                "detalle": respuesta_usuario,
+                "resultados": resultados
             }, status=status.HTTP_200_OK)
 
         except PermissionDenied as e:
