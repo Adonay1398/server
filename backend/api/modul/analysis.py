@@ -153,12 +153,16 @@ def calcular_scores(usuario, aplicacion, cuestionario):
         datos_indicadores = {
             "indicador": [{"nombre": k, "prom_score": v} for k, v in scores_indicadores.items()]
         }
+        nombres_filtrar ={"Autorregulación emocional y afectiva","Interacción social","Toma de decisiones",}
+        datos_indicadores_filtrados ={
+            "indicador": [{"nombre": k, "prom_score": v} for k, v in scores_indicadores.items() if k in nombres_filtrar]
+        }
         print("ok6")
         # Generar el reporte
-        
+        print(datos_indicadores_filtrados)
         
         reporte = make_analysis(
-            data=datos_indicadores,
+            data=datos_indicadores_filtrados,
             report='retroalimentación',
             referencia='indicador'
         )

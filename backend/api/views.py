@@ -674,7 +674,7 @@ class ResponderPreguntaView(APIView):
                 asignacion.save()
                 thread = threading.Thread(target=calcular_scores, args= (user, aplicacion,pregunta.cuestionario))
                 thread.start()
-                
+                print("ok")
                 return Response({"message": "Respuesta guardada y scores calculados."}, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
             # Construir la respuesta de éxito
             response_data = {
@@ -2082,35 +2082,6 @@ class ReportePorAplicacionArgumento4View(APIView):
     """
     permission_classes = [IsAuthenticated]
 
-    @swagger_auto_schema(
-        manual_parameters=[
-            openapi.Parameter(
-                'cve_aplic', openapi.IN_PATH,
-                description="Clave de la aplicación a consultar",
-                type=openapi.TYPE_INTEGER,
-                required=True
-            ),
-            openapi.Parameter(
-                'tipo', openapi.IN_QUERY,
-                description="Tipo de filtro (region, instituto, departamento, planestudios, tutor)",
-                type=openapi.TYPE_STRING,
-                required=False
-            ),
-            openapi.Parameter(
-                'valor', openapi.IN_QUERY,
-                description="Valor asociado al tipo de filtro (ID de la región, instituto, etc.)",
-                type=openapi.TYPE_STRING,
-                required=False
-            ),
-        ],
-        responses={
-            200: openapi.Response(description="Reporte obtenido con éxito"),
-            400: openapi.Response(description="Error en la solicitud"),
-            403: openapi.Response(description="Permiso denegado"),
-            404: openapi.Response(description="Aplicación no encontrada"),
-        }
-    )
-    
     def get(self, request, cve_aplic, tipo=None, valor=None):
         try:
             # Validar que la aplicación existe
@@ -2164,6 +2135,7 @@ class ReportePorAplicacionArgumento4View(APIView):
                                     status=status.HTTP_404_NOT_FOUND)
 
                 # Obtener el último reporte
+                
                 reporte = reportes.last()
                 respuesta = {
                     "texto_fortalezas": reporte.texto_fortalezas ,
@@ -2176,7 +2148,23 @@ class ReportePorAplicacionArgumento4View(APIView):
                     "departamento": reporte.departamento.nombre  if reporte.departamento else None,
                     "carrera": reporte.carrera.nombre if reporte.carrera else None,
                 }
-                return Response({"detalle": respuesta, "resultados": []}, status=status.HTTP_200_OK)
+                carrera = reporte.carrera.nombre if reporte and reporte and reporte.carrera else None
+                departamento = reporte.carrera.departamento.nombre  if reporte and reporte and reporte.carrera.departamento else None
+                instituto = reporte.carrera.departamento.instituto.nombre_completo if reporte and reporte and reporte.carrera.departamento.instituto else None
+                region =  reporte.carrera.departamento.instituto.region.nombre if reporte and reporte and reporte.carrera.departamento.instituto.region else None
+                datos_nivel ={
+                    
+                    "nombre": None,
+                    "apellido": None,
+                    "email":None,
+                    "edad":None,
+                    "carrera" : carrera,
+                    "departamento": departamento,
+                    "instituto": instituto,
+                    "region": region
+                    
+                }
+                return Response({"Datos":datos_nivel,"detalle": respuesta, "resultados": []}, status=status.HTTP_200_OK)
 
             nivel_consultado = {
                 "region": "Coordinador de Tutorias a Nivel Regional",
@@ -2259,8 +2247,32 @@ class ReportePorAplicacionArgumento4View(APIView):
                 "departamento": reporte_usuario.departamento.nombre if reporte.departamento else None,
                 "carrera": reporte_usuario.carrera.nombre  if reporte.carrera else None,
             }
-
+            edad = (
+            date.today().year - reporte_usuario.usuario_generador.fecha_nacimiento.year
+            - ((date.today().month, date.today().day) < 
+            (reporte_usuario.usuario_generador.fecha_nacimiento.month, reporte_usuario.usuario_generador.fecha_nacimiento.day))
+            if reporte_usuario and reporte_usuario.usuario_generador and reporte_usuario.usuario_generador.fecha_nacimiento
+            else None
+            
+            )
+            carrera = reporte_usuario.usuario_generador.carrera.nombre if reporte_usuario and reporte_usuario.usuario_generador and reporte_usuario.usuario_generador.carrera else None
+            departamento = reporte_usuario.usuario_generador.carrera.departamento.nombre  if reporte_usuario and reporte_usuario.usuario_generador and reporte_usuario.usuario_generador.carrera.departamento else None
+            instituto = reporte_usuario.usuario_generador.carrera.departamento.instituto.nombre_completo if reporte_usuario and reporte_usuario.usuario_generador and reporte_usuario.usuario_generador.carrera.departamento.instituto else None
+            region =  reporte_usuario.usuario_generador.carrera.departamento.instituto.region.nombre if reporte_usuario and reporte_usuario.usuario_generador and reporte_usuario.usuario_generador.carrera.departamento.instituto.region else None
+            datos_usuario ={
+                
+                "nombre": reporte_usuario.usuario_generador.first_name if reporte_usuario and reporte_usuario.usuario_generador else None,
+                "apellido":reporte_usuario.usuario_generador.last_name if reporte_usuario and reporte_usuario.usuario_generador else None,
+                "email":reporte_usuario.usuario_generador.email if reporte_usuario and reporte_usuario.usuario_generador else None,
+                "edad":edad,
+                "carrera" : carrera,
+                "departamento": departamento,
+                "instituto": instituto,
+                "region": region
+                
+            }
             return Response({
+                "datos_usuario": datos_usuario,
                 "detalle": respuesta_usuario,
                 "resultados": resultados
             }, status=status.HTTP_200_OK)
