@@ -422,11 +422,21 @@ class StoreResponsesView(APIView):
 # ==========================
 
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from rest_framework.exceptions import ValidationError
+from .models import RetroChatGPT
+
 class UserRelatedDataRetroView(APIView):
     """
     Vista para obtener datos relacionados con el usuario y un cuestionario específico.
     """
     permission_classes = [IsAuthenticated]
+
     @swagger_auto_schema(
         operation_summary="Obtener datos relacionados con el usuario y un cuestionario",
         operation_description=(
@@ -435,14 +445,14 @@ class UserRelatedDataRetroView(APIView):
         ),
         manual_parameters=[
             openapi.Parameter(
-                "Cuestionario_id", openapi.IN_PATH, 
-                description="ID del cuestionario relacionado.", 
+                "Cuestionario_id", openapi.IN_PATH,
+                description="ID del cuestionario relacionado.",
                 type=openapi.TYPE_INTEGER,
                 required=True
             ),
             openapi.Parameter(
-                "aplicacion_id", openapi.IN_PATH, 
-                description="ID de la aplicación relacionada.", 
+                "aplicacion_id", openapi.IN_PATH,
+                description="ID de la aplicación relacionada.",
                 type=openapi.TYPE_INTEGER,
                 required=True
             )
@@ -473,8 +483,7 @@ class UserRelatedDataRetroView(APIView):
             )
         }
     )
-    
-    def get(self, request, Cuestionario_id,aplicacion_id ,*args, **kwargs):
+    def get(self, request, Cuestionario_id, aplicacion_id, *args, **kwargs):
         """
         Maneja solicitudes GET para obtener datos relacionados con el usuario y un cuestionario específico.
 
@@ -485,17 +494,37 @@ class UserRelatedDataRetroView(APIView):
         Respuesta:
         - 200: Datos obtenidos exitosamente.
         - 401: No autorizado.
-        """        
-        serializer = UserRelatedDataSerializer(
-        instance=request.user,
-        context={
-            "request": request,
-            "Cuestionario_id": Cuestionario_id,
-            "aplicacion": aplicacion_id
-            }
-        )
+        """
+        user = request.user
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        # Validar parámetros
+        if not Cuestionario_id:
+            return Response({"error": "El parámetro 'Cuestionario_id' es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not aplicacion_id:
+            return Response({"error": "El parámetro 'aplicacion_id' es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            retroalimentaciones = RetroChatGPT.objects.filter(
+                usuario=user,
+                Cuestionario_id=Cuestionario_id,
+                aplicacion_id=aplicacion_id
+            ).last()
+
+            if not retroalimentaciones:
+                return Response({"error": "No se encontraron retroalimentaciones para este cuestionario y aplicación."}, status=status.HTTP_404_NOT_FOUND)
+
+            # Construir la respuesta
+            respuesta = {
+                "fortaleza": retroalimentaciones.texto1 if retroalimentaciones.texto1 else None,
+                "oportunidad": retroalimentaciones.texto2 if retroalimentaciones.texto2 else None
+            }
+            return Response(respuesta, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class UserDataReporteView(APIView):
     """
     Vista para obtener información relacionada con el usuario autenticado.

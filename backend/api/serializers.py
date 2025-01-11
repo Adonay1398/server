@@ -663,47 +663,7 @@ class UserRelatedDataSerializer(serializers.ModelSerializer):
 
     
 
-    def get_retrochatgpt(self, obj):
-        """
-        Retorna la retroalimentación basada en indicadores de un cuestionario específico.
-        """
-        request = self.context.get('request')
-        cuestionario_id = self.context.get('Cuestionario_id')
-        aplicacion_id = self.context.get('aplicacion')
-        
-        if not cuestionario_id :
-            raise serializers.ValidationError("El parámetro 'cuestionario_id' es obligatorio.")
-        
-        if not aplicacion_id:
-            raise serializers.ValidationError("Los parámetros  'aplicacion_id' son obligatorios.")
-
-        
-        user = request.user
-
-        # Filtrar indicadores del cuestionario específico
-        #indicadores = ScoreIndicador.objects.filter(
-        #    usuario=user,
-        #   aplicacion__cuestionario__cve_cuestionario=cuestionario_id
-        #)
-
-        #if not indicadores.exists():
-        #   return []
-
-        # Obtener retroalimentaciones relacionadas con esos indicadores
-        print("ok")
-        retroalimentaciones = RetroChatGPT.objects.filter(
-            usuario=user,Cuestionario_id =cuestionario_id, aplicacion_id = aplicacion_id
-        ).last()
-        print("ok2")
-        if retroalimentaciones is None:
-            raise serializers.ValidationError("No se encontraron retroalimentaciones para este cuestionario y aplicación.")
-
-        return [
-            {
-                retroalimentaciones.texto1 if retroalimentaciones.texto1 else None,
-                retroalimentaciones.texto2 if retroalimentaciones.texto2 else None
-            }
-        ]
+    
 class UserRelatedDataReporteSerializer(serializers.ModelSerializer):
     """
     Serializador para mostrar datos relacionados al usuario:
