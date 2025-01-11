@@ -39,7 +39,7 @@ def enviar_correo_error(email, nivel, aplicacion, error_mensaje):
     )
 
     try:
-        send_mail(asunto, mensaje, email_host_user, [email])
+        send_mail(asunto, mensaje, email_host_user, email_host_user)
         logger.info(f"Correo de error enviado a {email} para nivel {nivel}.")
     except Exception as e:
         logger.error(f"Error al enviar correo de error a {email}: {e}")

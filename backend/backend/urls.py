@@ -74,6 +74,7 @@ urlpatterns = [
     path('responder-pregunta/', ResponderPreguntaView.as_view(), name='responder-pregunta'),
     path('institutos-carreras/', InstitutoCarrerasView.as_view(), name='institutos-carreras'),
     path('api/cascade-upload/', CascadeUploadView.as_view(), name='cascade-upload'),
+    path('api/register/', UserRegistrationAPIView.as_view(), name='user-registration'),
 
     path('api/relacion-cuestionario-aplicacion/', RelacionCuestionarioAplicacionView.as_view(), name='relacion-cuestionario-aplicacion'),
 

@@ -24,10 +24,10 @@ from api.mails import enviar_correo_error, enviar_notificacion_por_correo
 
 DEFAULT_EMAILS = {
     "carrera": "le19080170@merida.tecnm.mx",
-    "departamento": "coordinador.sistemas@tecnm.mx",
-    "institucion": "le21080997@merida.tecnm.mx",
+    "departamento": "coordinador.sistemas.dept@merida.tecnm.mx",
+    "institucion": "coordinador.instituto.sistemas@merida.tecnm.mx",
     "region": "region_user@example.com",
-    #"nacion": "le21080997@merida.tecnm.mx",
+    "nacion": "le21080997@merida.tecnm.mx",
 }
 
 @shared_task
@@ -67,18 +67,18 @@ def verificar_y_cerrar_aplicaciones():
                         logger.info(f"Generando reporte para nivel {nivel} con usuario {email}.")
                         resultado = generar_reporte_por_grupo(usuario, aplicacion, cuestionarios.first().cve_cuestionario)
 
-                        if resultado["status"] == "success":
+                        """  if resultado["status"] == "success":
                             enviar_notificacion_por_correo(usuario, nivel, aplicacion)
                             logger.info(f"Reporte generado y notificado para nivel {nivel}.")
                         else:
                             enviar_correo_error(email, nivel, aplicacion, resultado["message"])
                             logger.warning(f"No se pudo generar el reporte para nivel {nivel}: {resultado['message']}")
-                    
+                        """
                     except Exception as e:
                         logger.error(f"Error inesperado al generar el reporte para nivel {nivel}: {e}")
                         enviar_correo_error(email, nivel, aplicacion, str(e))
-                    
-                # Generar reportes para usuarios asignados a la aplicación
+
+                """ # Generar reportes para usuarios asignados a la aplicación
                 usuarios_asignados = CustomUser.objects.filter(asignaciones__aplicacion=aplicacion).distinct()
 
                 for usuario in usuarios_asignados:
@@ -93,7 +93,7 @@ def verificar_y_cerrar_aplicaciones():
 
                     except Exception as e:
                         logger.error(f"Error inesperado al generar reporte individual para usuario ID={usuario.id}: {e}")
-
+ """
             except Exception as e:
                 logger.error(f"Error al procesar la aplicación {aplicacion.cve_aplic}: {e}")
         

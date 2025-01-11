@@ -67,6 +67,15 @@ class CarreraDetailSerializer(serializers.ModelSerializer):
         model = Departamento
         fields = ['cve_depto', 'nombre', 'jefe']
  """
+class UserRegistrationSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    password2 = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'}, label="Confirm password")
+    groups = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = CustomUser
+        fields = ['email', 'password', 'password2', 'groups', 'Region', 'instituto', 'departamento', 'carrera']
+
 
 class ConstructoSerializer(serializers.ModelSerializer):
     """

@@ -238,7 +238,7 @@ class CuestionarioStatusView(APIView):
         aplicaciones_asignadas = DatosAplicacion.objects.filter(asignaciones__usuario=user,fecha_inicion__lte=now().date()).distinct()
 
         if not aplicaciones_asignadas.exists():
-            return Response({"on_hold": {"current": [], "past": []}, "submitted": []}, status=200)
+            return Response({"on_hold": {"current": [], "past": []}, "submited": []}, status=200)
 
         on_hold_current = []
         on_hold_past = []
@@ -808,7 +808,7 @@ class PreguntaView(APIView):
 
 class AsignarCuestionarioGrupoView(APIView):
     
-    permission_classes = [IsAdminUser]
+    permission_classes = [AllowAny]
     @swagger_auto_schema(
         operation_summary="Asignar la aplicaciond de uno o mas cuestionarios a un grupo",
         operation_description=(
@@ -907,7 +907,7 @@ class AsignarCuestionarioGrupoView(APIView):
 
 class AsignarCuestionarioUsuarioView(APIView):
     
-    permission_classes = [IsAdminUser]
+    permission_classes = [AllowAny]
     @swagger_auto_schema(
         operation_summary="Asignar una aplicacion de un o mas cuestionarios a usuario",
         operation_description=(
@@ -1194,11 +1194,30 @@ class CascadeUploadView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+class UserRegistrationAPIView(generics.CreateAPIView):
+    serializer_class = UserRegistrationSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response({
+            "message": "User created successfully.",
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "region": user.Region.nombre if user.Region else None,
+                "instituto": user.instituto.nombre_completo if user.instituto else None,
+                "departamento": user.departamento.nombre if user.departamento else None,
+                "carrera": user.carrera.nombre if user.carrera else None,
+                "groups": [group.name for group in user.groups.all()],
+            }
+        }, status=status.HTTP_201_CREATED)
 class CerrarAplicacionCuestionarioView(APIView):
     """
     Endpoint para cerrar una aplicación de un cuestionario.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary="Cerrar una aplicación de cuestionario",
         operation_description=(
@@ -1285,7 +1304,8 @@ class CerrarAplicacionCuestionarioView(APIView):
             aplicacion.save()
             theread = threading.Thread(target=generar_reporte_por_grupo, args=(request.user, aplicacion, Cuestionario_id))
             theread.start()
-            generar_reportes_aplicacion_task.delay(aplicacion.cve_aplic)
+            #generar_reportes_aplicacion_task.delay(aplicacion.cve_aplic)
+            
             return Response(
                 {
                     "message": f"La aplicación con clave {cve_aplic} ha sido cerrada exitosamente.",
@@ -2106,7 +2126,7 @@ class ReportePorAplicacionArgumento4View(APIView):
 
             # Mapear los niveles
             nivel_grupo = {
-                "Coordinador de Tutorias a Nivel Nacional": "region",
+                "Coordinador de Tutorias a Nivel Nacional": "nacion",
                 "Coordinador de Tutorias a Nivel Regional": "region",
                 "Coordinador de Tutorias por Institucion": "instituto",
                 "Coordinador de Tutorias por Departamento": "departamento",
@@ -2227,17 +2247,17 @@ class ReportePorAplicacionArgumento4View(APIView):
                 })
 
             # Obtener el último reporte del grupo del usuario
-            reporte_usuario = reportes_usuario.last()
+            reporte_usuario = reportes_consultados.last()
             respuesta_usuario = {
-                "texto_fortalezas": reporte.texto_fortalezas ,
-                "texto_oportunidades": reporte.texto_oportunidades ,
-                "observaciones": reporte.observaciones ,
-                "datos_promedios": reporte.datos_promedios ,
-                "nivel": reporte.nivel ,
+                "texto_fortalezas": reporte_usuario.texto_fortalezas ,
+                "texto_oportunidades": reporte_usuario.texto_oportunidades ,
+                "observaciones": reporte_usuario.observaciones ,
+                "datos_promedios": reporte_usuario.datos_promedios ,
+                "nivel": reporte_usuario.nivel ,
                 #"usuario_generador": reporte_usuario.usuario_generador.email if reporte_usuario and reporte_usuario.usuario_generador else None,
-                "institucion": reporte.institucion.nombre_completo if reporte.institucion else None,
-                "departamento": reporte.departamento.nombre if reporte.departamento else None,
-                "carrera": reporte.carrera.nombre  if reporte.carrera else None,
+                "institucion": reporte_usuario.institucion.nombre_completo if reporte.institucion else None,
+                "departamento": reporte_usuario.departamento.nombre if reporte.departamento else None,
+                "carrera": reporte_usuario.carrera.nombre  if reporte.carrera else None,
             }
 
             return Response({

@@ -162,22 +162,41 @@ def generar_reporte_individual_por_tutor( usuario,aplicacion,cuestionario_id):
             print("ok-tutores-indiv 0")
             # Preparar datos para make_analysis
             data = {
-                indicador.nombre: {
-                    "prom_score": indicador.prom_score,
-                    "constructs": [
+                indicador_score.indicador.nombre: {
+                    "prom_score": indicador_score.score,
+                    "constructos": [
                         {
-                            "nombre": constructo.nombre,
-                            "prom_score": constructo.prom_score
+                            "nombre": constructo_score.constructo.descripcion,
+                            "prom_score": constructo_score.score
                         }
-                        for constructo in scores_constructos if constructo.indicador_id == indicador.id
+                        for constructo_score in scores_constructos
+                        if indicador_score.indicador in constructo_score.constructo.indicadores_set.all()
                     ]
                 }
-                for indicador in scores_indicadores
+                for indicador_score in scores_indicadores
+            }
+            nombres_filtrar ={"Autorregulación emocional y afectiva","Interacción social","Toma de decisiones",}
+            data_filtrada = {
+                indicador_score.indicador.nombre:{
+                    "prom_score":indicador_score.score,
+                    "constructos":[
+                        {
+                            "nombre":constructo_score.constructo.descripcion,
+                            "prom_score":constructo_score.score
+                            
+                        }
+                        for constructo_score in scores_constructos
+                        if indicador_score.indicador in constructo_score.constructo.indicadores_set.all()
+                    ]
                 }
+                for indicador_score in scores_indicadores 
+                if indicador_score.indicador.nombre in nombres_filtrar
+                }
+            print(data_filtrada)
             print("ok-tutores-indiv 1")
             # Generar el reporte con make_analysis
-            reporte = make_analysis(data=data, report="individual", referencia='indicador')
-            print("ok-tutores-indiv 2")
+            reporte = make_analysis(data=data_filtrada, report="individual", referencia='indicador')
+            print(reporte)
             # Extraer texto del análisis
             texto1 = reporte.get("fortaleza", "").strip()
             texto2 = reporte.get("oportunidad", "").strip()
@@ -238,14 +257,34 @@ def generar_reporte_por_grupo(usuario, aplicacion,cuestionario_id):
         data = {
             indicador["nombre"]: {
                 "prom_score": indicador["prom_score"],
-                "constructs": [
+                "constructos": [
                     {"nombre": constructo["nombre"], "prom_score": constructo["prom_score"]}
                     for constructo in indicador["constructos"]
                 ]
             }
             for indicador in datos_tutores["promedios_indicadores"]
         }
-        print("Prepared data for analysis:", data)
+        print("datoa ok")
+        try:
+            nombres_filtrar ={"Autorregulación emocional y afectiva","Interacción social","Toma de decisiones",}
+            print(nombres_filtrar)
+            data_filtrada ={
+                indicador["nombre"]:{
+                    "prom_score":indicador["prom_score"],
+                    "constructos":[
+                        {"nombre":constructo["nombre"],"prom_score":constructo["prom_score"]}
+                        for constructo in indicador["constructos"]
+                    ]
+                }
+                for indicador in datos_tutores["promedios_indicadores"]
+                if indicador["nombre"] in nombres_filtrar
+            }
+        except KeyError as e:
+            print(f"Error al filtrar los datos: {e}")
+            #print("datos:"{datos_tutores})
+            raise
+        
+        print("Prepared data for analysis:", data_filtrada)
         #datos_promedios1 = procesar_datos_promedios(data)
 
         print("ok-grupo data ok")
@@ -262,7 +301,7 @@ def generar_reporte_por_grupo(usuario, aplicacion,cuestionario_id):
         print("ok-grupo 0")
         # Generar el reporte con make_analysis
         
-        reporte = make_analysis(data=data, report=report, referencia='indicador')
+        reporte = make_analysis(data=data_filtrada, report=report, referencia='indicador')
         
         print("Reporte generado:")
         #print(dict(reporte))
