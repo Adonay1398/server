@@ -44,7 +44,7 @@ urlpatterns = [
     path('activar/', ActivarCuentaView.as_view(), name='activar_cuenta'),
 
     # User Management
-    #path("api/create-user/", UserRegistrationView.as_view(), name="create_user"),
+    path("api/create-coordinador/",CreateCooridnadorsView.as_view(), name="create_user"),
     path("api/create-tutor/", CreateTutorView.as_view(), name="register_user"),
     path('users/', CustomUserListView.as_view(), name='user-list'),
     path('user/personal-info/', CustomUserDetailView.as_view(), name='user-detail'),
@@ -74,7 +74,7 @@ urlpatterns = [
     path('responder-pregunta/', ResponderPreguntaView.as_view(), name='responder-pregunta'),
     path('institutos-carreras/', InstitutoCarrerasView.as_view(), name='institutos-carreras'),
     path('api/cascade-upload/', CascadeUploadView.as_view(), name='cascade-upload'),
-    path('api/register/', UserRegistrationAPIView.as_view(), name='user-registration'),
+    #path('api/register/', UserRegistrationAPIView.as_view(), name='user-registration'),
 
     path('api/relacion-cuestionario-aplicacion/', RelacionCuestionarioAplicacionView.as_view(), name='relacion-cuestionario-aplicacion'),
 

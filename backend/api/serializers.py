@@ -235,42 +235,142 @@ class CuestionarioSerializer(serializers.ModelSerializer):
 
 
 
-""" 
-class UserRegistrationSerializer(serializers.ModelSerializer):
-    
+class CoordinadoresRegistrationSerializer(serializers.ModelSerializer):
+    """
     Serializador para el registro de un usuario genérico.
     Requiere confirmación de contraseña y asigna un grupo.
-    
+    """
+    region = serializers.CharField(write_only=True, required=False)
+    instituto = serializers.CharField(write_only=True, required=False)
+    departamento = serializers.CharField(write_only=True, required=False)
+    carrera = serializers.CharField(write_only=True, required=False)
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
     password2 = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'}, label="Confirm password")
     groups = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = CustomUser
-        fields = [ 'email', 'password', 'password2', 'groups','region','carrera','instituto']
+        fields = ['first_name', 'last_name', 'fecha_nacimiento', 'email', 'password', 'password2', 'groups', 'region', 'instituto', 'departamento', 'carrera']
 
     def validate(self, data):
-        Valida que las contraseñas coincidan.
+        # Valida que las contraseñas coincidan
         if data['password'] != data['password2']:
             raise serializers.ValidationError("Passwords do not match.")
+        
+        # Validaciones condicionales
+        region_nombre = data.get('region')
+        if region_nombre and not Region.objects.filter(nombre=region_nombre).exists():
+            raise serializers.ValidationError("La región especificada no existe.")
+
+        instituto_nombre = data.get('instituto')
+        if instituto_nombre and not Instituto.objects.filter(nombre_completo=instituto_nombre).exists():
+            raise serializers.ValidationError("El instituto especificado no existe.")
+
+        departamento_nombre = data.get('departamento')
+        if departamento_nombre and not Departamento.objects.filter(nombre=departamento_nombre).exists():
+            raise serializers.ValidationError("El departamento especificado no existe.")
+
+        carrera_nombre = data.get('carrera')
+        if carrera_nombre and not Carrera.objects.filter(nombre=carrera_nombre).exists():
+            raise serializers.ValidationError("La carrera especificada no existe.")
+
+        grupo_nombre = data.get('groups', [])
+        if grupo_nombre and not Group.objects.filter(name=grupo_nombre).exists():
+            raise serializers.ValidationError("El grupo especificado no existe.")
+
+        # Validar relaciones entre los modelos
+        if region_nombre and instituto_nombre:
+            region = Region.objects.filter(nombre=region_nombre).first()
+            if not region:
+                raise serializers.ValidationError(f"La región '{region_nombre}' no existe.")
+            if not Instituto.objects.filter(nombre_completo=instituto_nombre, region=region).exists():
+                raise serializers.ValidationError(
+                    f"El instituto '{instituto_nombre}' no pertenece a la región '{region_nombre}'."
+                )
+
+        if instituto_nombre and departamento_nombre:
+            instituto = Instituto.objects.filter(nombre_completo=instituto_nombre).first()
+            if not instituto:
+                raise serializers.ValidationError(f"El instituto '{instituto_nombre}' no existe.")
+            if not Departamento.objects.filter(nombre=departamento_nombre, instituto=instituto).exists():
+                raise serializers.ValidationError(
+                    f"El departamento '{departamento_nombre}' no pertenece al instituto '{instituto_nombre}'."
+                )
+
+        if departamento_nombre and carrera_nombre:
+            departamento = Departamento.objects.filter(nombre=departamento_nombre).first()
+            if not departamento:
+                raise serializers.ValidationError(f"El departamento '{departamento_nombre}' no existe.")
+            if not Carrera.objects.filter(nombre=carrera_nombre, departamento=departamento).exists():
+                raise serializers.ValidationError(
+                    f"La carrera '{carrera_nombre}' no pertenece al departamento '{departamento_nombre}'."
+                )
+
+        fecha_nacimiento = data.get('fecha_nacimiento')
+        if fecha_nacimiento:
+            today = date.today()
+            age = (
+                today.year - fecha_nacimiento.year
+                - ((today.month, today.day) < (fecha_nacimiento.month, fecha_nacimiento.day))
+            )
+            if age < 15 or age > 99:
+                raise serializers.ValidationError("La edad debe estar entre 15 y 99 años.")
         return data
 
     def create(self, validated_data):
-        Crea un usuario y lo asigna al grupo especificado
-        group_name = validated_data.pop('groups', [])
-        user = CustomUser.objects.create_user(
-            username=validated_data['username'],
-            password=validated_data['password'],
-            email=validated_data['email'].
-            region=validated_data['region'],
-            carrera=validated_data['carrera'],
-            instituto=validated_data['instituto']
-        )
-        group = Group.objects.get(name=group_name)
-        user.groups.add(group)
-        return user
+    # Extraer datos opcionales
+        region_nombre = validated_data.pop('region', None)
+        instituto_nombre = validated_data.pop('instituto', None)
+        departamento_nombre = validated_data.pop('departamento', None)
+        carrera_nombre = validated_data.pop('carrera', None)
 
- """
+        grupo_nombre = validated_data.pop('groups')
+        grupo = Group.objects.filter(name=grupo_nombre).first() if grupo_nombre else None
+
+        # Crear el usuario
+        user = CustomUser(
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name'],
+            email=validated_data['email'],
+            fecha_nacimiento=validated_data['fecha_nacimiento'],
+            is_active=True
+        )
+        user.set_password(validated_data['password'])
+        user.save()
+
+        # Asignar relaciones después de crear el usuario
+        if region_nombre:
+            region = Region.objects.filter(nombre=region_nombre).first()
+            if region:
+                user.Region = region
+
+        if instituto_nombre:
+            instituto = Instituto.objects.filter(nombre_completo=instituto_nombre).first()
+            if instituto:
+                user.instituto = instituto
+
+        if departamento_nombre:
+            departamento = Departamento.objects.filter(nombre=departamento_nombre).first()
+            if departamento:
+                user.departamento = departamento
+
+        if carrera_nombre:
+            carrera = Carrera.objects.filter(nombre=carrera_nombre).first()
+            if carrera:
+                user.carrera = carrera
+
+        # Guardar las relaciones
+        user.save()
+
+        # Asignar el grupo
+        if grupo:
+            user.groups.add(grupo)
+
+        return user
+        
+        
+
+
 
 class TutorsRegistrationSerializer(serializers.ModelSerializer):
     """

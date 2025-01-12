@@ -10,49 +10,67 @@ logger = logging.getLogger(__name__)
 
 def obtener_tutores_por_grupo(usuario):
     """
-    obtiene los tutores relacionados según su nivel jerárquico.
+    Obtiene los tutores relacionados según su nivel jerárquico.
 
     Args:
         usuario (CustomUser): Usuario autenticado.
 
     Returns:
-        QuerySet: CustomUseres relacionados con el grupo del usuario.
+        QuerySet: Usuarios relacionados con el grupo del usuario.
     """
+    
     try:
-        grupo = usuario.groups.first()
+        grupo = usuario.groups.first()  # Obtener el primer grupo del usuario
+        if not grupo:
+            raise ValueError(f"El usuario {usuario.email} no pertenece a ningún grupo.")
 
+        print(f"Grupo del usuario: {grupo.name}")
+
+        # Coordinador de Plan de Estudios
         if grupo.name == "Coordinador de Plan de Estudios":
-            carrera = usuario.carrera
-            tutores = CustomUser.objects.filter(carrera=carrera)
-        
-        elif grupo.name == "Coordinador de Tutorias por Departamento":
-            departamento = usuario.carrera.departamento  # Suponiendo que el usuario tiene asignado un departamento
-            tutores = CustomUser.objects.filter(carrera__departamento=departamento)
-
-        elif grupo.name == "Coordinador de Tutorias por Institucion":
-            institucion = usuario.carrera.departamento.instituto  # Relación indirecta desde el departamento
-            tutores = CustomUser.objects.filter(carrera__departamento__instituto=institucion)
-
-        elif grupo.name == "Coordinador de Tutorias a Nivel Regional":
-            region = usuario.carrera.departamento.intituto.region  # Relación indirecta desde el departamento
-            tutores = CustomUser.objects.filter(carrera__departamento__instituto__region=region)
-
-        elif grupo.name == "Coordinador de Tutorias a Nivel Nacional":
-            tutores = CustomUser.objects.filter(groups__name="Tutores")  # A nivel nacional, obtenemos todos los tutores
+            if not usuario.carrera:
+                raise ValueError(f"El usuario {usuario.email} no tiene una carrera asignada.")
+            tutores = CustomUser.objects.filter(carrera=usuario.carrera, groups__name="Tutores")
             
         
-        elif grupo.name == "Tutores":
-            tutores = CustomUser.objects.filter(user=usuario)  # Solo el tutor actual
-        else:
-            raise ValueError("El grupo del usuario no está definido para esta operación.")
-        
-        
-        
+        # Coordinador de Tutorias por Departamento
+        elif grupo.name == "Coordinador de Tutorias por Departamento":
+            if not usuario.departamento:
+                raise ValueError(f"El usuario {usuario.email} no tiene un departamento asignado.")
+            tutores = CustomUser.objects.filter(carrera__departamento=usuario.departamento, groups__name="Tutores")
+            print(usuario.departamento)
+        # Coordinador de Tutorias por Institucion
+        elif grupo.name == "Coordinador de Tutorias por Institucion":
+            if not usuario.instituto:
+                raise ValueError(f"El usuario {usuario.email} no tiene una institución asignada.")
+            tutores = CustomUser.objects.filter(carrera__departamento__instituto=usuario.instituto, groups__name="Tutores")
 
-        return tutores
+        # Coordinador de Tutorias a Nivel Regional
+        elif grupo.name == "Coordinador de Tutorias a Nivel Regional":
+            if not usuario.Region:
+                raise ValueError(f"El usuario {usuario.email} no tiene una región asignada.")
+            tutores = CustomUser.objects.filter(carrera__departamento__instituto__region=usuario.Region, groups__name="Tutores")
+
+        # Coordinador de Tutorias a Nivel Nacional
+        elif grupo.name == "Coordinador de Tutorias a Nivel Nacional":
+            tutores = CustomUser.objects.filter(groups__name="Tutores")  # A nivel nacional, obtenemos todos los tutores
+
+        # Tutores
+        elif grupo.name == "Tutores":
+            tutores = CustomUser.objects.filter(id=usuario.id)  # Solo el tutor actual
+
+        # Grupo no reconocido
+        else:
+            raise ValueError(f"El grupo del usuario {usuario.email} no está definido para esta operación.")
+
+        print(f"Tutores encontrados: {tutores.count()}")
 
     except Exception as e:
         raise ValueError(f"Error al obtener tutores: {str(e)}")
+
+    return tutores
+
+    
     
     
     
@@ -140,6 +158,7 @@ def calcular_scores_tutores(tutores, aplicacion, cuestionario, usuario):
 def generar_reporte_individual_por_tutor( usuario,aplicacion,cuestionario_id):
     """
     Genera reportes individuales para cada tutor relacionado con la aplicación.
+    para todos los tutores relacionados con la clave de la aplicacion.
 
     Args:
         tutores (QuerySet): Lista de tutores relacionados.
@@ -203,7 +222,7 @@ def generar_reporte_individual_por_tutor( usuario,aplicacion,cuestionario_id):
             texto3 = reporte.get("perfil", "").strip()
             print("ok-tutores-indiv 3")
             # Guardar solo hasta el nivel del usuario
-            
+            obj_usuario = CustomUser.objects.get(email=usuario.email) if usuario.carrera else None
             print("ok-tutores-indiv 4")
             # Crear el reporte en la base de datos
             Reporte.objects.create(
@@ -213,11 +232,11 @@ def generar_reporte_individual_por_tutor( usuario,aplicacion,cuestionario_id):
                 texto_oportunidades=texto2,
                 observaciones=texto3,
                 fecha_generacion=now(),
-                usuario_generador=usuario,
-                carrera=usuario.carrera if hasattr(usuario, 'carrera') and usuario.carrera else None,
-                departamento=usuario.departamento if hasattr(usuario, 'departamento') and usuario.departamento else None,
-                institucion=usuario.instituto if hasattr(usuario, 'instituto') and usuario.instituto else None,
-                region=usuario.region if hasattr(usuario, 'region') and usuario.region else None,
+                usuario_generador=obj_usuario,
+                carrera=obj_usuario.carrera if  obj_usuario.carrera else None,
+                departamento=obj_usuario.carrera.departamento if  obj_usuario.carrera.departamento else None,
+                institucion=obj_usuario.carrera.departamento.instituto if obj_usuario.carrera.departamento.instituto  else None,
+                region=obj_usuario.carrera.departamento.instituto.region if obj_usuario.carrera.departamento.instituto.region else None,
                 datos_promedios=data
             )
             print("ok-tutores-indiv 5")
@@ -235,6 +254,7 @@ def generar_reporte_individual_por_tutor( usuario,aplicacion,cuestionario_id):
 def generar_reporte_por_grupo(usuario, aplicacion,cuestionario_id):
     """
     Genera un reporte para los tutores relacionados al grupo del usuario.
+    para esta funcion usaremos los coordinadores, es decir gnerar los reportes de los coordinadores o los correros de los coordinadores
 
     Args:
         usuario (CustomUser): Usuario autenticado.
@@ -244,6 +264,7 @@ def generar_reporte_por_grupo(usuario, aplicacion,cuestionario_id):
         dict: Resultado del reporte generado.
     """
     try:
+        
         # Obtener tutores según el grupo del usuario
         tutores = obtener_tutores_por_grupo(usuario)
         print("ok-grupo ")
@@ -264,6 +285,13 @@ def generar_reporte_por_grupo(usuario, aplicacion,cuestionario_id):
             }
             for indicador in datos_tutores["promedios_indicadores"]
         }
+        if not data:
+            logger.warning("El diccionario 'data' está vacío. Deteniendo la ejecución.")
+            return {
+                "status": "error",
+                "message": "El diccionario 'data' está vacío. No se puede continuar con la generación del reporte."
+            }
+
         print("datoa ok")
         try:
             nombres_filtrar ={"Autorregulación emocional y afectiva","Interacción social","Toma de decisiones",}
@@ -319,21 +347,30 @@ def generar_reporte_por_grupo(usuario, aplicacion,cuestionario_id):
         region = institucion.region if grupo in ["Coordinador de Tutorias a Nivel Regional", "Coordinador de Tutorias por Institucion", "Coordinador de Tutorias por Departamento", "Coordinador de Plan de Estudios"] else None
 
         """
+        #obj_usuario = CustomUser.objects.get(email=usuario.email) if usuario.carrera else None
+        # Validar si el usuario tiene los datos necesarios
+        carrera = usuario.carrera if usuario.carrera else None
+        departamento = usuario.departamento if usuario.departamento else None
+        institucion = usuario.instituto if usuario.instituto else None
+        region = usuario.Region if usuario.Region else None
+
         # Guardar el reporte en la base de datos
         Reporte.objects.create(
             nivel=grupo,
-            referencia_id=aplicacion.cve_aplic,  # O el ID de referencia correspondiente
+            referencia_id=aplicacion.cve_aplic,
             texto_fortalezas=texto1,
             texto_oportunidades=texto2,
             observaciones=texto3,
             fecha_generacion=now(),
-            usuario_generador=usuario,
-            carrera=usuario.carrera if hasattr(usuario, 'carrera') and usuario.carrera else None,
-            departamento=usuario.departamento if hasattr(usuario, 'departamento') and usuario.departamento else None,
-            institucion=usuario.instituto if hasattr(usuario, 'instituto') and usuario.instituto else None,
-            region=usuario.region if hasattr(usuario, 'region') and usuario.region else None,
+            usuario_generador=None,  # Puedes registrar al usuario generador directamente
+            carrera=carrera,
+            departamento=departamento,
+            institucion=institucion,
+            region=region,
             datos_promedios=data
         )
+
+        
 
         print("ok-grupo 4")
         print("Reporte guardado exitosamente.")
@@ -348,124 +385,3 @@ def generar_reporte_por_grupo(usuario, aplicacion,cuestionario_id):
             "message": str(e)
         }
 
-
-
-def generar_reportes_aplicacion(aplicacion_id):
-    """
-    Genera reportes para todos los usuarios asignados a los cuestionarios de una aplicación,
-    obteniendo scores de constructos e indicadores directamente de la base de datos.
-
-    Args:
-        aplicacion_id (int): ID de la aplicación cuyos reportes se generarán.
-
-    Returns:
-        dict: Resultado del proceso, incluyendo estadísticas de éxito y error.
-    """
-    try:
-        # Obtener la aplicación
-        aplicacion = DatosAplicacion.objects.get(cve_aplic=aplicacion_id)
-
-        # Obtener todas las asignaciones completadas para esta aplicación
-        asignaciones = AsignacionCuestionario.objects.filter(
-            aplicacion=aplicacion,
-            completado=True
-        )
-
-        if not asignaciones.exists():
-            return {
-                "status": "warning",
-                "message": f"No hay asignaciones completadas para la aplicación {aplicacion.cve_aplic}."
-            }
-
-        resultados = {"success": 0, "errors": 0, "details": []}
-
-        # Procesar cada asignación
-        for asignacion in asignaciones:
-            usuario = asignacion.usuario
-            cuestionario = asignacion.cuestionario
-
-            try:
-                # Obtener scores de constructos e indicadores para el usuario
-                scores_constructos = ScoreConstructo.objects.filter(
-                    usuario=usuario,
-                    aplicacion=aplicacion
-                ).distinct()
-
-                scores_indicadores = ScoreIndicador.objects.filter(
-                    usuario=usuario,
-                    aplicacion=aplicacion
-                ).distinct()
-
-                # Preparar las relaciones constructo-indicador
-                data = {}
-                for indicador_score in scores_indicadores:
-                    indicador_nombre = indicador_score.indicador.nombre
-                    if indicador_nombre not in data:
-                        data[indicador_nombre] = {
-                            "prom_score": indicador_score.score,
-                            "constructs": []
-                        }
-
-                for constructo_score in scores_constructos:
-                    constructo_nombre = constructo_score.constructo.descripcion
-                    for indicador in constructo_score.constructo.indicadores_set.all():
-                        if indicador.nombre in data:
-                            data[indicador.nombre]["constructs"].append({
-                                "nombre": constructo_nombre,
-                                "prom_score": constructo_score.score
-                            })
-
-                # Generar reporte con make_analysis
-                reporte = make_analysis(data=data, report="individual", referencia="indicador")
-
-                # Extraer resultados del análisis
-                texto1 = reporte.get("fortaleza", "").strip()
-                texto2 = reporte.get("oportunidad", "").strip()
-                texto3 = reporte.get("perfil", "").strip()
-
-                # Identificar relaciones jerárquicas
-                carrera = usuario.carrera
-                departamento = carrera.departamento
-                institucion = departamento.instituto
-                region = institucion.region
-
-                # Crear el reporte en la base de datos
-                Reporte.objects.create(
-                    nivel="individual",
-                    referencia_id=aplicacion.cve_aplic,
-                    texto_fortalezas=texto1,
-                    texto_oportunidades=texto2,
-                    observaciones=texto3,
-                    fecha_generacion=now(),
-                    usuario_generador=usuario,
-                    carrera=carrera,
-                    departamento=departamento,
-                    institucion=institucion,
-                    region=region,
-                    datos_promedios=data
-                )
-
-                resultados["success"] += 1
-            except Exception as e:
-                resultados["errors"] += 1
-                resultados["details"].append({
-                    "usuario": usuario.email,
-                    "error": str(e)
-                })
-
-        return {
-            "status": "completed",
-            "message": f"Proceso finalizado para la aplicación {aplicacion.cve_aplic}.",
-            "results": resultados
-        }
-
-    except DatosAplicacion.DoesNotExist:
-        return {
-            "status": "error",
-            "message": f"La aplicación con ID {aplicacion_id} no existe."
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": f"Error inesperado: {str(e)}"
-        }

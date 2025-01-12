@@ -11,6 +11,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication   
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from api.tasks import verificar_y_cerrar_aplicaciones
+
 
 from .modul.GenerateAnalysGroups import generar_reporte_por_grupo
 from .modul.analysis import calcular_scores
@@ -55,7 +57,17 @@ class CustomUserDetailView(generics.RetrieveUpdateDestroyAPIView):
         Retorna el usuario autenticado basado en el token.
         """
         return self.request.user
-
+class CreateCooridnadorsView(generics.CreateAPIView):
+    permission_classes= [AllowAny]
+    queryset = CustomUser.objects.all()
+    serializer_class = CoordinadoresRegistrationSerializer
+    
+    def post(self,request,*args, **kwargs):
+        """
+        Maneja solicitudes POST para crear un coordinador.
+        """
+        return super().post(request, *args, **kwargs)
+    
 class CreateTutorView(generics.CreateAPIView):
     """
     Crear un tutor.
@@ -1223,25 +1235,7 @@ class CascadeUploadView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-class UserRegistrationAPIView(generics.CreateAPIView):
-    serializer_class = UserRegistrationSerializer
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        return Response({
-            "message": "User created successfully.",
-            "user": {
-                "id": user.id,
-                "email": user.email,
-                "region": user.Region.nombre if user.Region else None,
-                "instituto": user.instituto.nombre_completo if user.instituto else None,
-                "departamento": user.departamento.nombre if user.departamento else None,
-                "carrera": user.carrera.nombre if user.carrera else None,
-                "groups": [group.name for group in user.groups.all()],
-            }
-        }, status=status.HTTP_201_CREATED)
 class CerrarAplicacionCuestionarioView(APIView):
     """
     Endpoint para cerrar una aplicación de un cuestionario.
@@ -1316,7 +1310,7 @@ class CerrarAplicacionCuestionarioView(APIView):
         - 400: La aplicación ya está cerrada o no se puede cerrar.
         """
         cve_aplic = request.data.get('cve_aplic')
-        Cuestionario_id = request.data.get('Cuestionario_id')
+        #Cuestionario_id = request.data.get('Cuestionario_id')
         if not cve_aplic:
             return Response({"error": "El campo 'cve_aplic' es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1325,16 +1319,18 @@ class CerrarAplicacionCuestionarioView(APIView):
             aplicacion = DatosAplicacion.objects.get(cve_aplic=cve_aplic)
             # Asumiendo que la relación es ForeignKey
             # Verificar si la aplicación ya está cerrada
-            if aplicacion.fecha_fin and aplicacion.fecha_fin < now().date():
+            if aplicacion.fecha_fin and aplicacion.fecha_fin <= now().date():
                 return Response({"error": "La aplicación ya está cerrada."}, status=status.HTTP_400_BAD_REQUEST)
 
             # Marcar la aplicación como cerrada
             aplicacion.fecha_fin = now().date()
             aplicacion.save()
-            theread = threading.Thread(target=generar_reporte_por_grupo, args=(request.user, aplicacion, Cuestionario_id))
-            theread.start()
+            #theread = threading.Thread(target=generar_reporte_por_grupo, args=(request.user, aplicacion, Cuestionario_id))
+            #theread.start()
             #generar_reportes_aplicacion_task.delay(aplicacion.cve_aplic)
-            
+            theread = threading.Thread(target=verificar_y_cerrar_aplicaciones)
+            theread.start()
+            #thearead = verificar_y_cerrar_aplicaciones()
             return Response(
                 {
                     "message": f"La aplicación con clave {cve_aplic} ha sido cerrada exitosamente.",
@@ -1673,6 +1669,7 @@ class ObtenerInformacionJerarquica(APIView):
             "Coordinador de Tutorias a Nivel Regional": self.obtener_regional,
             "Coordinador de Tutorias por Institucion": self.obtener_institucional,
             "Coordinador de Tutorias por Departamento": self.obtener_departamental,
+            "Coordinador de Plan de Estudios": self.obtener_planestudios,
             "Tutores": self.obtener_individual,
         }
 
@@ -1693,10 +1690,13 @@ class ObtenerInformacionJerarquica(APIView):
         for region in regiones:
             instituciones = Instituto.objects.filter(region=region)
             institucion_data = []
+            print(region.nombre)
             for instituto in instituciones:
+                print(instituto.nombre_completo)
                 departamentos = Departamento.objects.filter(instituto=instituto)
                 departamento_data = []
                 for departamento in departamentos:
+                    print(departamento.nombre)
                     carreras = Carrera.objects.filter(departamento=departamento)
                     carrera_data = []
                     for carrera in carreras:
@@ -1708,7 +1708,8 @@ class ObtenerInformacionJerarquica(APIView):
                                 "Coordinador de Tutorias por Departamento",
                                 "Coordinador de Tutorias por Institucion",
                                 "Coordinador de Tutorias a Nivel Regional",
-                                "Coordinador de Tutorias a Nivel Nacional"
+                                "Coordinador de Tutorias a Nivel Nacional",
+                                "Coordinador de Plan de Estudios"
                             ]
                         ).values("id", "first_name", "last_name", "email")
                         carrera_data.append({
@@ -1742,7 +1743,7 @@ class ObtenerInformacionJerarquica(APIView):
         """
         Devuelve la región asociada al usuario, con sus instituciones, departamentos, carreras y usuarios.
         """
-        region = usuario.carrera.departamento.instituto.region
+        region = usuario.Region
         if not region:
             return Response({"error": "El usuario no tiene región asignada."}, status=400)
 
@@ -1760,6 +1761,7 @@ class ObtenerInformacionJerarquica(APIView):
                         carrera=carrera
                     ).exclude(
                         groups__name__in=[
+                            "Coordinador de Plan de Estudios",
                             "Coordinador de Tutorias por Departamento",
                             "Coordinador de Tutorias por Institucion",
                             "Coordinador de Tutorias a Nivel Regional",
@@ -1796,7 +1798,7 @@ class ObtenerInformacionJerarquica(APIView):
         """
         Devuelve el instituto asociado al usuario, con sus departamentos, carreras y usuarios.
         """
-        instituto = usuario.carrera.departamento.instituto
+        instituto = usuario.instituto
         if not instituto:
             return Response({"error": "El usuario no tiene instituto asignado."}, status=400)
 
@@ -1811,6 +1813,7 @@ class ObtenerInformacionJerarquica(APIView):
                     carrera=carrera
                 ).exclude(
                     groups__name__in=[
+                        "Coordinador de Plan de Estudios",
                         "Coordinador de Tutorias por Departamento",
                         "Coordinador de Tutorias por Institucion",
                         "Coordinador de Tutorias a Nivel Regional",
@@ -1846,7 +1849,7 @@ class ObtenerInformacionJerarquica(APIView):
         """
         Devuelve el departamento asociado al usuario, con sus carreras y usuarios.
         """
-        departamento = usuario.carrera.departamento
+        departamento = usuario.departamento
         if not departamento:
             return Response({"error": "El usuario no tiene departamento asignado."}, status=400)
 
@@ -1858,6 +1861,7 @@ class ObtenerInformacionJerarquica(APIView):
                 carrera=carrera
             ).exclude(
                 groups__name__in=[
+                    "Coordinador de Plan de Estudios",
                     "Coordinador de Tutorias por Departamento",
                     "Coordinador de Tutorias por Institucion",
                     "Coordinador de Tutorias a Nivel Regional",
@@ -1887,50 +1891,58 @@ class ObtenerInformacionJerarquica(APIView):
                 "carreras": carrera_data,
             }
         })
-    def obtener_departamental(self, usuario):
+    def obtener_planestudios(self, usuario):
         """
         Devuelve el departamento asociado al usuario, con sus carreras y usuarios.
         """
-        departamento = usuario.carrera.departamento
-        if not departamento:
+        plan_estudios = usuario.carrera
+        if not plan_estudios:
             return Response({"error": "El usuario no tiene departamento asignado."}, status=400)
 
-        carreras = Carrera.objects.filter(departamento=departamento)
-        carrera_data = []
-        for carrera in carreras:
+        #usuarios = Carrera.objects.filter(carrera=plan_estudios)
+        usuarios_data = []
+        #for usuario in usuarios:
             # Filtrar usuarios que no son coordinadores
-            usuarios = CustomUser.objects.filter(
-                carrera=carrera
-            ).exclude(
-                groups__name__in=[
-                    "Coordinador de Tutorias por Departamento",
-                    "Coordinador de Tutorias por Institucion",
-                    "Coordinador de Tutorias a Nivel Regional",
-                    "Coordinador de Tutorias a Nivel Nacional"
-                ]
-            ).values("id", "first_name", "last_name", "email")
-            carrera_data.append({
-                "id": carrera.cve_carrera,
-                "nombre": carrera.nombre,
-                "usuarios": list(usuarios)
-            })
+        usuarios = CustomUser.objects.filter(
+        carrera=plan_estudios
+        ).exclude(
+            groups__name__in=[
+                "Coordinador de Plan de Estudios",
+                "Coordinador de Tutorias por Departamento",
+                "Coordinador de Tutorias por Institucion",
+                "Coordinador de Tutorias a Nivel Regional",
+                "Coordinador de Tutorias a Nivel Nacional"
+            ]
+        ).values("id", "first_name", "last_name", "email")
+        """ usuarios_data.append({
+            #"id": usuario.id,
+            #"nombre": usuario.first_name,
+            #"carrera":usuario.carrera.nombre,
+            "":list(usuarios)
+        }) """
 
         return Response({
-            "nivel": "departamento",
+            "nivel": "plan_estudios",
             "nacion": {"nombre": "Nación"},
             "region": {
-                "id": departamento.instituto.region.cve_region,
-                "nombre": departamento.instituto.region.nombre,
+                "id": plan_estudios.departamento.instituto.region.cve_region,
+                "nombre": plan_estudios.departamento.instituto.region.nombre,
             },
             "instituto": {
-                "id": departamento.instituto.cve_inst,
-                "nombre": departamento.instituto.nombre_completo,
+                "id": plan_estudios.departamento.instituto.cve_inst,
+                "nombre": plan_estudios.departamento.instituto.nombre_completo,
             },
             "departamento": {
-                "id": departamento.cve_depto,
-                "nombre": departamento.nombre,
-                "carreras": carrera_data,
+                "id": plan_estudios.departamento.cve_depto,
+                "nombre": plan_estudios.departamento.nombre,
             },
+            "carrera": {
+                "id": plan_estudios.cve_carrera,
+                "nombre": plan_estudios.nombre,
+                "usuarios": usuarios
+                
+            },
+            
             
         })
     def obtener_individual(self, usuario):
@@ -1940,8 +1952,8 @@ class ObtenerInformacionJerarquica(APIView):
         carrera = usuario.carrera
         if not carrera:
             return Response({"error": "El usuario no tiene carrera asignada."}, status=400)
-
-        return Response({
+        carrera = usuario
+        return Response({ 
             "nivel": "individual",
             "nacion": {"nombre": "Nación"},
             "region": {
@@ -1969,112 +1981,7 @@ class ObtenerInformacionJerarquica(APIView):
 
 
 from django.core.exceptions import PermissionDenied
-class ReportePorAplicacionArgumento1View(APIView):
-    """
-    Endpoint para obtener reportes filtrados por aplicación y un único argumento adicional
-    (Instituto, Departamento, Carrera, o Usuario). Si no se proporciona argumento adicional,
-    devuelve el reporte del grupo al que pertenece el usuario autenticado.
-    """
-    permission_classes = [IsAuthenticated]
 
-    def get(self, request, cve_aplic, tipo=None, valor=None):
-        try:
-            # Validar que la aplicación existe
-            aplicacion = get_object_or_404(DatosAplicacion, pk=cve_aplic)
-
-            # Verificar si la aplicación está cerrada
-            if aplicacion.fecha_fin is None:
-                return Response({"error": "La aplicación aún no ha finalizado."}, status=status.HTTP_400_BAD_REQUEST)
-
-            # Obtener grupo del usuario
-            grupo_usuario = request.user.groups.first()
-            if not grupo_usuario:
-                return Response({"error": "El usuario no pertenece a ningún grupo."}, status=status.HTTP_403_FORBIDDEN)
-
-            # Mapear grupo del usuario a nivel
-            nivel_grupo = {
-                "Coordinador de Tutorias a Nivel Nacional": "nacional",
-                "Coordinador de Tutorias a Nivel Regional": "region",
-                "Coordinador de Tutorias por Institucion": "institucion",
-                "Coordinador de Tutorias por Departamento": "departamento",
-                "Coordinador de Plan de Estudios": "plan_estudios",
-                "Tutores": "individual",
-            }.get(grupo_usuario.name)
-
-            if not nivel_grupo:
-                return Response({"error": f"El grupo '{grupo_usuario.name}' no tiene un nivel asignado."},
-                                status=status.HTTP_400_BAD_REQUEST)
-
-            # Validar jerarquías según relaciones
-            if tipo and nivel_grupo == {
-                "region": "region",
-                "instituto": "institucion",
-                "departamento": "departamento",
-                "carrera": "plan_estudios",
-                "usuario": "individual",
-            }.get(tipo.lower()):
-                return Response({"error": "No puedes consultar el mismo nivel al que perteneces."},
-                                status=status.HTTP_403_FORBIDDEN)
-
-            # Filtrar reportes según tipo y valor
-            if tipo and valor:
-                filtros = {
-                    "region": {"region_id": valor},
-                    "instituto": {"institucion_id": valor},
-                    "departamento": {"departamento_id": valor},
-                    "carrera": {"carrera_id": valor},
-                    "usuario": {"usuario_generador_id": valor},
-                }.get(tipo.lower(), None)
-
-                if not filtros:
-                    return Response(
-                        {"error": f"El tipo '{tipo}' no es válido. Use 'Region', 'Instituto', 'Departamento', 'Carrera' o 'Usuario'."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-
-                reportes = Reporte.objects.filter(referencia_id=cve_aplic, **filtros)
-            else:
-                # Si no hay filtros, devolver reportes para el nivel del usuario
-                reportes = Reporte.objects.filter(referencia_id=cve_aplic, nivel=nivel_grupo)
-
-            # Si no se encuentran reportes
-            if not reportes.exists():
-                return Response({"error": "No se encontraron reportes para los criterios proporcionados."},
-                                status=status.HTTP_404_NOT_FOUND)
-
-            # Agregar resultados de promedios y otros detalles
-            resultados = []
-            for reporte in reportes:
-                promedios = reporte.datos_promedios or {}
-                resultados.append({
-                    "nivel": reporte.nivel,
-                    "promedios_indicadores": promedios
-                })
-
-            # Respuesta con detalles del último reporte
-            ultimo_reporte = reportes.last()
-            detalle = {
-                "texto_fortalezas": ultimo_reporte.texto_fortalezas if ultimo_reporte else "No data available",
-                "texto_oportunidades": ultimo_reporte.texto_oportunidades if ultimo_reporte else "No data available",
-                "observaciones": ultimo_reporte.observaciones if ultimo_reporte else "No data available",
-                "datos_promedios": ultimo_reporte.datos_promedios if ultimo_reporte else {},
-                "nivel": ultimo_reporte.nivel if ultimo_reporte else nivel_grupo,
-                "usuario_generador": ultimo_reporte.usuario_generador.email if ultimo_reporte and ultimo_reporte.usuario_generador else None,
-                "institucion": ultimo_reporte.institucion.nombre_completo if ultimo_reporte and ultimo_reporte.institucion else None,
-                "departamento": ultimo_reporte.departamento.nombre if ultimo_reporte and ultimo_reporte.departamento else None,
-                "carrera": ultimo_reporte.carrera.nombre if ultimo_reporte and ultimo_reporte.carrera else None,
-            }
-
-            return Response({
-                "detalle": detalle,
-                "resultados": resultados,
-            }, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            return Response({"error": f"Error interno del servidor: {str(e)}"},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            
 
 class UserRelationUpdateAPIView(APIView):
     """
@@ -2144,7 +2051,7 @@ class ReportePorAplicacionArgumento4View(APIView):
                 "Coordinador de Tutorias por Institucion",
                 "Coordinador de Tutorias por Departamento",
                 "Coordinador de Plan de Estudios",
-                "Tutores"
+                "Tutores",
             ]
 
             # Validar que no se consulte el mismo nivel del grupo del usuario
@@ -2171,16 +2078,16 @@ class ReportePorAplicacionArgumento4View(APIView):
                     "texto_oportunidades": reporte.texto_oportunidades ,
                     "observaciones": reporte.observaciones,
                     "datos_promedios": reporte.datos_promedios ,
-                    "nivel": reporte.nivel ,
-                    "usuario_generador": reporte.usuario_generador.email ,
-                    "institucion": reporte.institucion.nombre_completo if reporte.institucion else None,
-                    "departamento": reporte.departamento.nombre  if reporte.departamento else None,
-                    "carrera": reporte.carrera.nombre if reporte.carrera else None,
+                    #"nivel": reporte.nivel ,
+                    #"usuario_generador": reporte.usuario_generador.email if reporte.usuario_generador else None,
+                    # "institucion": reporte.institucion.nombre_completo if reporte.institucion else None,
+                    # "departamento": reporte.departamento.nombre  if reporte.departamento else None,
+                    # "carrera": reporte.carrera.nombre if reporte.carrera else None,
                 }
-                carrera = reporte.carrera.nombre if reporte and reporte and reporte.carrera else None
-                departamento = reporte.carrera.departamento.nombre  if reporte and reporte and reporte.carrera.departamento else None
-                instituto = reporte.carrera.departamento.instituto.nombre_completo if reporte and reporte and reporte.carrera.departamento.instituto else None
-                region =  reporte.carrera.departamento.instituto.region.nombre if reporte and reporte and reporte.carrera.departamento.instituto.region else None
+                carrera = reporte.carrera.nombre if reporte and   reporte.carrera else None
+                departamento = reporte.departamento.nombre  if reporte  and reporte.departamento else None
+                instituto = reporte.institucion.nombre_completo if reporte and reporte.institucion else None
+                region =  reporte.region.nombre if reporte and reporte.region else None
                 datos_nivel ={
                     
                     "nombre": None,
@@ -2235,14 +2142,14 @@ class ReportePorAplicacionArgumento4View(APIView):
                                 status=status.HTTP_404_NOT_FOUND)
 
             # Obtener reportes del grupo que hizo la consulta
-            reportes_usuario = Reporte.objects.filter(referencia_id=cve_aplic, nivel=grupo_usuario.name)
+            reportes_usuario = Reporte.objects.filter(referencia_id=cve_aplic, nivel=nivel_consultado)
             if not reportes_usuario.exists():
-                return Response({"error": "No se encontraron reportes para el grupo del usuario autenticado."},
+                return Response({"error": "No se encontraron reportes para el nivel consultado."},
                                 status=status.HTTP_404_NOT_FOUND)
 
             # Procesar reportes entre niveles
             resultados = []
-            for nivel in niveles[nivel_index_usuario:nivel_index_consultado + 1]:
+            for nivel in niveles[nivel_index_usuario:nivel_index_consultado +1]:
                 reportes = Reporte.objects.filter(referencia_id=cve_aplic, nivel=nivel)
                 if not reportes.exists():
                     continue
@@ -2264,7 +2171,8 @@ class ReportePorAplicacionArgumento4View(APIView):
                 })
 
             # Obtener el último reporte del grupo del usuario
-            reporte_usuario = reportes_consultados.last()
+            reporte_usuario = reportes_consultados.get(nivel=nivel_consultado)
+            
             respuesta_usuario = {
                 "texto_fortalezas": reporte_usuario.texto_fortalezas ,
                 "texto_oportunidades": reporte_usuario.texto_oportunidades ,
@@ -2272,27 +2180,27 @@ class ReportePorAplicacionArgumento4View(APIView):
                 "datos_promedios": reporte_usuario.datos_promedios ,
                 "nivel": reporte_usuario.nivel ,
                 #"usuario_generador": reporte_usuario.usuario_generador.email if reporte_usuario and reporte_usuario.usuario_generador else None,
-                "institucion": reporte_usuario.institucion.nombre_completo if reporte.institucion else None,
-                "departamento": reporte_usuario.departamento.nombre if reporte.departamento else None,
-                "carrera": reporte_usuario.carrera.nombre  if reporte.carrera else None,
+                #"institucion": reporte_usuario.institucion.nombre_completo if reporte_usuario.institucion else None,
+                #"departamento": reporte_usuario.departamento.nombre if reporte_usuario.departamento else None,
+                #"carrera": reporte_usuario.carrera.nombre  if reporte_usuario.carrera else None,
             }
             edad = (
             date.today().year - reporte_usuario.usuario_generador.fecha_nacimiento.year
             - ((date.today().month, date.today().day) < 
             (reporte_usuario.usuario_generador.fecha_nacimiento.month, reporte_usuario.usuario_generador.fecha_nacimiento.day))
-            if reporte_usuario and reporte_usuario.usuario_generador and reporte_usuario.usuario_generador.fecha_nacimiento
+            if reporte_usuario and reporte_usuario.usuario_generador  and tipo == "tutor" and reporte_usuario.usuario_generador.fecha_nacimiento
             else None
             
             )
-            carrera = reporte_usuario.usuario_generador.carrera.nombre if reporte_usuario and reporte_usuario.usuario_generador and reporte_usuario.usuario_generador.carrera else None
-            departamento = reporte_usuario.usuario_generador.carrera.departamento.nombre  if reporte_usuario and reporte_usuario.usuario_generador and reporte_usuario.usuario_generador.carrera.departamento else None
-            instituto = reporte_usuario.usuario_generador.carrera.departamento.instituto.nombre_completo if reporte_usuario and reporte_usuario.usuario_generador and reporte_usuario.usuario_generador.carrera.departamento.instituto else None
-            region =  reporte_usuario.usuario_generador.carrera.departamento.instituto.region.nombre if reporte_usuario and reporte_usuario.usuario_generador and reporte_usuario.usuario_generador.carrera.departamento.instituto.region else None
+            carrera = reporte_usuario.carrera.nombre if reporte_usuario  and reporte_usuario.carrera else None
+            departamento = reporte_usuario.departamento.nombre  if reporte_usuario  and reporte_usuario.departamento else None
+            instituto = reporte_usuario.institucion.nombre_completo if reporte_usuario and reporte_usuario.institucion else None
+            region =  reporte_usuario.region.nombre if reporte_usuario and reporte_usuario.region else None
             datos_usuario ={
                 
-                "nombre": reporte_usuario.usuario_generador.first_name if reporte_usuario and reporte_usuario.usuario_generador else None,
-                "apellido":reporte_usuario.usuario_generador.last_name if reporte_usuario and reporte_usuario.usuario_generador else None,
-                "email":reporte_usuario.usuario_generador.email if reporte_usuario and reporte_usuario.usuario_generador else None,
+                "nombre": reporte_usuario.usuario_generador.first_name if reporte_usuario and tipo.lower() =="tutor" and reporte_usuario.usuario_generador else None,
+                "apellido":reporte_usuario.usuario_generador.last_name if reporte_usuario and tipo.lower() =="tutor" and reporte_usuario.usuario_generador else None,
+                "email":reporte_usuario.usuario_generador.email if reporte_usuario and tipo.lower() == "tutor" and reporte_usuario.usuario_generador else None,
                 "edad":edad,
                 "carrera" : carrera,
                 "departamento": departamento,
