@@ -2078,7 +2078,7 @@ class ReportePorAplicacionArgumento4View(APIView):
                     "texto_oportunidades": reporte.texto_oportunidades ,
                     "observaciones": reporte.observaciones,
                     "datos_promedios": reporte.datos_promedios ,
-                    #"nivel": reporte.nivel ,
+                    "nivel": reporte.nivel ,
                     #"usuario_generador": reporte.usuario_generador.email if reporte.usuario_generador else None,
                     # "institucion": reporte.institucion.nombre_completo if reporte.institucion else None,
                     # "departamento": reporte.departamento.nombre  if reporte.departamento else None,
@@ -2209,7 +2209,7 @@ class ReportePorAplicacionArgumento4View(APIView):
                 
             }
             return Response({
-                "datos_usuario": datos_usuario,
+                "Datos": datos_usuario,
                 "detalle": respuesta_usuario,
                 "resultados": resultados
             }, status=status.HTTP_200_OK)
@@ -2219,3 +2219,5 @@ class ReportePorAplicacionArgumento4View(APIView):
         except Exception as e:
             return Response({"error": f"Error interno del servidor: {str(e)}"},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+
