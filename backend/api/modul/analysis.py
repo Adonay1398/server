@@ -166,6 +166,7 @@ def calcular_scores(usuario, aplicacion, cuestionario):
             report='retroalimentación',
             referencia='indicador'
         )
+        print(reporte)
         print("ok7")
         # Convertir el JSON a texto y dividirlo en texto1 y texto2
         # Buscar "fortaleza" y "oportunidad" usando find
@@ -190,18 +191,8 @@ def calcular_scores(usuario, aplicacion, cuestionario):
         except Exception as e:
             print(f"Error al guardar el reporte en RetroChatGPT: {e}")
         
-        reporte_individual = make_analysis(
-            data=datos_indicadores,
-            report='individual',
-            referencia='indicador'
-        )
-        
         print("ok9")
-        # Debugging: Mostrar resultados
-        """ print(f"Scores de Constructos: {scores_constructos}")
-        print(f"Scores de Indicadores: {scores_indicadores}")
-        print(f"Reporte generado: {reporte}") """
-        #print("ok10")
+        
         return  scores_constructos, scores_indicadores, reporte
 
     except Exception as e:
