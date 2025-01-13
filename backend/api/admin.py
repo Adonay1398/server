@@ -31,19 +31,14 @@ class CustomUserAdmin(UserAdmin):
 # Registrar el modelo CustomUser con la configuración personalizada
 admin.site.register(CustomUser, CustomUserAdmin)
 
-class MyAdminSite(admin.AdminSite):
-    site_header ="Cerrar Aplicacion"
-    
-    def get_urls(self):
-        urls = super().get_urls()
-        custom_urls = [
-            path('cerrar_aplicacion/', self.admin_view(self.CerrarAplicacionCuestionarioView))
-        ]
-        return urls 
+""" def get_custom_urls():
+    return [
+        path('cerrar_aplicacion_cuestionario/', CerrarAplicacionCuestionarioView.as_view(), name="cerrar_aplicacion_cuestionario")
+    ]
 
-admin_site = MyAdminSite(name="custom_admin")
-
-# Registrar el modelo solo si no está registrado
+#admin_site = MyAdminSte(name="custom_admin")
+admin.site.get_urls =lambda: get_custom_urls() + admin.site.get_urls() """
+# Registrar el modelo solo i no está registrado
 """ try:
     admin.site.register(PeriodicTask)
 except admin.sites.AlreadyRegistered:
