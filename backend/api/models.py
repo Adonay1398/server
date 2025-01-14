@@ -181,7 +181,7 @@ class ScoreConstructo(models.Model):
     aplicacion = models.ForeignKey(DatosAplicacion, on_delete=models.CASCADE)
     usuario = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     constructo = models.ForeignKey(Constructo, on_delete=models.CASCADE)
-    score = models.IntegerField()
+    score = models.FloatField()
 
     def __str__(self):
         return f"Score Constructo {self.constructo.descripcion} - {self.score}"
@@ -205,7 +205,7 @@ class ScoreIndicador(models.Model):
     aplicacion = models.ForeignKey(DatosAplicacion, on_delete=models.CASCADE)
     usuario = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     indicador = models.ForeignKey(Indicador, on_delete=models.CASCADE)
-    score = models.IntegerField()
+    score = models.FloatField()
     constructos = models.ManyToManyField(ScoreConstructo, related_name='indicadores', blank=True)
 
     def __str__(self):
