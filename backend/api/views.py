@@ -1240,7 +1240,7 @@ class CerrarAplicacionCuestionarioView(APIView):
     """
     Endpoint para cerrar una aplicación de un cuestionario.
     """
-    permission_classes = [IsAuthenticated]
+    #permission_classes = [IsAuthenticated]
     @swagger_auto_schema(
         operation_summary="Cerrar una aplicación de cuestionario",
         operation_description=(

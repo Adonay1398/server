@@ -8,13 +8,15 @@
 # database or a cache. For examples, see the Awesome Compose repository:
 # https://github.com/docker/awesome-compose
 services:
-  server:
-    build:
-      context: .
-    ports:
-      - 8000:8000
-    env_file:
-        - /.env      
+    server:
+      build:
+        context: .  # Indica el directorio en el que buscará el Dockerfile
+      ports:
+        - "8000:8000"  # Expone el puerto 8000 del contenedor en el puerto 8000 de tu máquina
+      env_file:
+        - .env  # Carga variables de entorno desde el archivo .env
+      command: "python manage.py runserver"
+      #-b 0.0.0.0 -p 8000 backend.asgi:application
 
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to

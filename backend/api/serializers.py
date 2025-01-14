@@ -442,8 +442,8 @@ class TutorsRegistrationSerializer(serializers.ModelSerializer):
         user.groups.add(tutores_group)
 
         try:
-            # Obtener la aplicación con ID 4
-            aplicacion = DatosAplicacion.objects.get(pk=12)
+            # Obtener la aplicación con ID 4    
+            aplicacion = DatosAplicacion.objects.get(pk=15)
             cuestionarios = aplicacion.cuestionario.all()  # Obtener todos los cuestionarios asociados
 
             if not cuestionarios.exists():
