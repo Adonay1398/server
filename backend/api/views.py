@@ -2028,6 +2028,7 @@ class ReportePorAplicacionArgumento4View(APIView):
 
             # Obtener el grupo del usuario
             grupo_usuario = request.user.groups.first()
+            usuario_token = CustomUser.objects.get(email=request.user)
             if not grupo_usuario:
                 return Response({"error": "El usuario no pertenece a ningún grupo."}, status=status.HTTP_403_FORBIDDEN)
 
@@ -2071,8 +2072,16 @@ class ReportePorAplicacionArgumento4View(APIView):
                                     status=status.HTTP_404_NOT_FOUND)
 
                 # Obtener el último reporte
-                
-                reporte = reportes.last()
+                filtros = {
+                "region": lambda: reportes.get(  region=usuario_token.Region),
+                "instituto": lambda: reportes.get( institucion=usuario_token.instituto),
+                "departamento": lambda: reportes.get(departamento=usuario_token.departamento),
+                "planestudios": lambda: reportes.get(carrera=usuario_token.carrera),
+                "tutor": lambda: reportes.get(usuario_generador= usuario_token),
+                }
+                reporte = filtros[nivel_grupo]()
+                #reporte=reporte_filtrado.last()
+                #reporte = reportes.get()
                 respuesta = {
                     "texto_fortalezas": reporte.texto_fortalezas ,
                     "texto_oportunidades": reporte.texto_oportunidades ,

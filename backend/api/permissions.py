@@ -7,7 +7,7 @@ class IsAuthorizedUser(BasePermission):
         # Verificar si el usuario pertenece a uno de los grupos autorizados
         authorized_groups = [
             'Coordinador de Tutorias a Nivel Nacional',
-            'Coordinador de Tutorias a Nivel Region',
+            'Coordinador de Tutorias a Nivel Regional',
             'Coordinador de Tutorias por Institucion',
             'Coordinador de Tutorias por Departamento',
             'Coordinador de Plan de Estudios',
@@ -35,7 +35,7 @@ class IsCoordinadorDeTutoriasNivelNacional(permissions.BasePermission):
 
 class IsCoordinadorDeTutoriasNivelRegion(permissions.BasePermission):
     def has_permission(self, request, view):
-        return request.user and request.user.groups.filter(name='Coordinador de Tutorias a Nivel Region').exists()
+        return request.user and request.user.groups.filter(name='Coordinador de Tutorias a Nivel Regional').exists()
 
 class IsCoordinadorDeTutoriasPorInstitucion(permissions.BasePermission):
     def has_permission(self, request, view):

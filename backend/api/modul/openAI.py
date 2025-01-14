@@ -38,14 +38,14 @@ def limpiar_response(response):
 
 def make_analysis(
         data: dict, 
-        report: Literal['retroalimentación', 'individual', 'departamento', 'institucional', 'regional', 'nacional'],
+        report: Literal['retroalimentación', 'individual', 'carrera','departamento', 'institucional', 'regional', 'nacional'],
         referencia: Literal['constructo', 'indicador']
     ) -> dict:
     
     if not isinstance(data, dict):
         raise TypeError("El parámetro 'data' debe ser un diccionario.")
     
-    if report not in ['retroalimentación', 'individual', 'departamento', 'institucional', 'regional', 'nacional']:
+    if report not in ['retroalimentación', 'individual', 'carrera','departamento', 'institucional', 'regional', 'nacional']:
         raise ValueError("El parámetro 'report' es inválido.")
     
     if referencia not in ['constructo', 'indicador']:
@@ -54,6 +54,7 @@ def make_analysis(
     type_report = {
         'retroalimentación': 'retroalimentación',
         'individual': 'reporte individual',
+        'carrera': 'reporte plan de estudios',
         'departamento': 'reporte departamento',
         'institucional': 'reporte institucional',
         'regional': 'reporte regional',

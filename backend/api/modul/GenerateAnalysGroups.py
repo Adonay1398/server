@@ -319,6 +319,7 @@ def generar_reporte_por_grupo(usuario, aplicacion,cuestionario_id):
         # Determinar el tipo de reporte según el grupo
         grupo = usuario.groups.first().name
         report = {
+            "Coordinador de Plan de Estudios": "carrera",
             "Coordinador de Tutorias por Departamento": "departamento",
             "Coordinador de Tutorias por Institucion": "institucional",
             "Coordinador de Tutorias a Nivel Regional": "regional",

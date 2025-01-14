@@ -21,13 +21,23 @@ logger = logging.getLogger(__name__)
 
 
 from api.mails import enviar_correo_error, enviar_notificacion_por_correo
-
 DEFAULT_EMAILS = {
-    "carrera": "coordinador.sistemas.plan@merida.tecnm.mx",
-    "departamento": "coordinador.sistemas.dept@merida.tecnm.mx",
-    "institucion": "coordinador.instituto.sistemas@merida.tecnm.mx",
-    #"region": "region_user@example.com",
-    #"nacion": "le21080997@merida.tecnm.mx",
+    "departamento": [
+        "coord.cea.dept@merida.tecnm.mx",
+        "coord.ea.dept@conkal.tecnm.mx",
+        "coord.sistemas.dept@merida.tecnm.mx",
+    ],
+    "institucion": [
+        "coord.conkal.inst@conkal.tecnm.mx",
+        "coord.merida.inst@merida.tecnm.mx",
+    ],
+    "nacion": ["coord.nacion@tecnm.mx"],
+    "carrera": [
+        "coord.ige.plan@merida.tecnm.mx",
+        "coord.itic.plan@conkal.tecnm.mx",
+        "coord.sistemas.plan@merida.tecnm.mx",
+    ],
+    "region": ["coord.region.sur@tecnm.mx"],
 }
 
 @shared_task
@@ -42,45 +52,43 @@ def verificar_y_cerrar_aplicaciones():
             logger.info("No hay aplicaciones para cerrar.")
             return
 
-        usuarios = CustomUser.objects.filter(email__in=DEFAULT_EMAILS.values())
+        usuarios = CustomUser.objects.filter(email__in=[email for emails in DEFAULT_EMAILS.values() for email in emails])
         usuarios_dict = {usuario.email: usuario for usuario in usuarios}
         
         for aplicacion in aplicaciones:
             try:
-                if aplicacion.fecha_fin != None and aplicacion.reporte_generado == False:
-                    #aplicacion.fecha_fin = now().date()
-                    
-                    #aplicacion.save()
+                if aplicacion.fecha_fin is not None and not aplicacion.reporte_generado:
                     logger.info(f"Aplicación cerrada: {aplicacion.cve_aplic}.")
-
                     cuestionarios = aplicacion.cuestionario.all()
+
                     if not cuestionarios.exists():
                         logger.warning(f"No cuestionarios asociados a la aplicación {aplicacion.cve_aplic}.")
                         continue
                     
-                    for nivel, email in DEFAULT_EMAILS.items():
-                        usuario = usuarios_dict.get(email)
-                        
-                        if not usuario:
-                            logger.warning(f"Usuario no encontrado para nivel {nivel} con email {email}.")
-                            continue
-
-                        try:
-                            logger.info(f"Generando reporte para nivel {nivel} con usuario {email}.")
-                            resultado = generar_reporte_por_grupo(usuario, aplicacion, cuestionarios.first().cve_cuestionario)
-
-                            if resultado["status"] == "success":
-                                enviar_notificacion_por_correo(usuario, nivel, aplicacion)
-                                logger.info(f"Reporte generado y notificado para nivel {nivel}.")
-                            else:
-                                enviar_correo_error(email, nivel, aplicacion, resultado["message"])
-                                logger.warning(f"No se pudo generar el reporte para nivel {nivel}: {resultado['message']}")
+                    for nivel, emails in DEFAULT_EMAILS.items():
+                        for email in emails:
+                            usuario = usuarios_dict.get(email)
                             
-                        except Exception as e:
-                            logger.error(f"Error inesperado al generar el reporte para nivel {nivel}: {e}")
-                            enviar_correo_error(email, nivel, aplicacion, str(e))
+                            if not usuario:
+                                logger.warning(f"Usuario no encontrado para nivel {nivel} con email {email}.")
+                                continue
 
-                    # Generar reportes para usuarios asignados a la aplicación
+                            try:
+                                logger.info(f"Generando reporte para nivel {nivel} con usuario {email}.")
+                                resultado = generar_reporte_por_grupo(usuario, aplicacion, cuestionarios.first().cve_cuestionario)
+
+                                if resultado["status"] == "success":
+                                    enviar_notificacion_por_correo(usuario, nivel, aplicacion)
+                                    logger.info(f"Reporte generado y notificado para nivel {nivel}.")
+                                else:
+                                    enviar_correo_error(email, nivel, aplicacion, resultado["message"])
+                                    logger.warning(f"No se pudo generar el reporte para nivel {nivel}: {resultado['message']}")
+                                
+                            except Exception as e:
+                                logger.error(f"Error inesperado al generar el reporte para nivel {nivel}: {e}")
+                                enviar_correo_error(email, nivel, aplicacion, str(e))
+
+                    # Generar reportes individuales para usuarios asignados
                     usuarios_asignados = CustomUser.objects.filter(asignaciones__aplicacion=aplicacion).distinct()
 
                     for usuario in usuarios_asignados:
@@ -95,17 +103,17 @@ def verificar_y_cerrar_aplicaciones():
 
                         except Exception as e:
                             logger.error(f"Error inesperado al generar reporte individual para usuario ID={usuario.id}: {e}")
+                
                 aplicacion.reporte_generado = True
                 aplicacion.save()
                 
             except Exception as e:
                 logger.error(f"Error al procesar la aplicación {aplicacion.cve_aplic}: {e}")
-                    
 
-        print("se generaron los reportes")
+        logger.info("Se generaron los reportes.")
     except Exception as e:
         logger.error(f"Error general en la tarea verificar_y_cerrar_aplicaciones: {e}")
-    print("se termino")
+    logger.info("Se terminó el proceso.")
 
 """ @shared_task
 def generar_reportes_aplicacion_task(aplicacion_id):
