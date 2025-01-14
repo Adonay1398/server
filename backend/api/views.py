@@ -2073,7 +2073,8 @@ class ReportePorAplicacionArgumento4View(APIView):
 
                 # Obtener el último reporte
                 filtros = {
-                "region": lambda: reportes.get(  region=usuario_token.Region),
+                "nacion": lambda: reportes.get(region=usuario_token.Region),
+                "region": lambda: reportes.get( region=usuario_token.Region),
                 "instituto": lambda: reportes.get( institucion=usuario_token.instituto),
                 "departamento": lambda: reportes.get(departamento=usuario_token.departamento),
                 "planestudios": lambda: reportes.get(carrera=usuario_token.carrera),
