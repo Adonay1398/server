@@ -194,6 +194,9 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_HEADERS = list(default_headers) + [
     'contenttype',
 ]
+CSRF_TRUSTED_ORIGINS = [
+    'https://server-prueba1.onrender.com'
+]
 
 CORS_ALLOW_METHODS = list(default_methods) + [
     'GET',
