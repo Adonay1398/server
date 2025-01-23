@@ -27,7 +27,7 @@ class Command(BaseCommand):
 
         try:
             # Step 1: Clear Existing Data and Reset Counters
-            from django.db import connection
+            """ from django.db import connection
             with connection.cursor() as cursor:
                 cursor.execute("TRUNCATE TABLE api_pregunta RESTART IDENTITY CASCADE;")
                 cursor.execute("TRUNCATE TABLE api_cuestionario RESTART IDENTITY CASCADE;")
@@ -35,7 +35,7 @@ class Command(BaseCommand):
                 cursor.execute("TRUNCATE TABLE api_indicador RESTART IDENTITY CASCADE;")
                 cursor.execute("TRUNCATE TABLE api_indicadorconstructo RESTART IDENTITY CASCADE;")
 
-            self.stdout.write(self.style.SUCCESS("Existing data cleared, and counters reset."))
+            self.stdout.write(self.style.SUCCESS("Existing data cleared, and counters reset.")) """
 
             # Step 2: Convert Scorekey to list of integers
             data['Scorekey'] = data['Scorekey'].apply(lambda x: list(map(int, x.split(','))) if pd.notna(x) else [])
@@ -54,12 +54,12 @@ class Command(BaseCommand):
                 indicator_name = row['Category']
                 construct_names = row['Subcategory'].split('/')  # Split by "/"
                 signo = row.get('Signo', '+')  # Default to '+'
-
+                acronimo_indicador = indicator_name[:4].upper() # Generate acronym
                 # Create or get Indicator
-                indicador, _ = Indicador.objects.get_or_create(nombre=indicator_name)
+                indicador, _ = Indicador.objects.get_or_create(nombre=indicator_name,acronimo=acronimo_indicador)
                 indicator_dict[indicator_name] = indicador
 
-                # Create Constructs
+                # Create Construcs
                 for construct_name in construct_names:
                     construct_name = construct_name.strip()  # Clean whitespace
                     acronimo =  construct_name[:4].upper() # Generate acronym
@@ -91,7 +91,7 @@ class Command(BaseCommand):
                 if cuestionario_name not in cuestionarios_dict:
                     cuestionarios_dict[cuestionario_name], _ = Cuestionario.objects.get_or_create(
                         nombre_corto=cuestionario_name,
-                        defaults={'nombre_largo': cuestionario_name}
+                        defaults={'nombre': cuestionario_name}
                     )
 
                 cuestionario = cuestionarios_dict[cuestionario_name]
