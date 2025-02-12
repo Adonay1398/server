@@ -1,12 +1,11 @@
-Proyecto de Gestión de Tutores
+###Proyecto de Gestión de Tutores
 
-Este es un proyecto para gestionar tutores en una plataforma educativa. El proyecto está basado en Django para el backend, React para el frontend y PostgreSQL como base de datos. La plataforma permite la creación de usuarios con roles de administradores y tutores, junto con la funcionalidad para cargar encuestas y generar informes procesados por Inteligencia Artificial.
+##Este es un proyecto para gestionar tutores en una plataforma educativa. El proyecto está basado en Django para el backend, React para el frontend y PostgreSQL como base de datos. La plataforma permite la ##creación de usuarios con roles de administradores y tutores, junto con la funcionalidad para cargar encuestas y generar informes procesados por Inteligencia Artificial.
 
-Tecnologías utilizadas
+#Tecnologías utilizadas
 
 Backend: Django, Django REST Framework
 
-Frontend: React
 
 Base de Datos: PostgreSQL
 
@@ -14,13 +13,13 @@ IA: Integración para procesar encuestas y generar informes
 
 Docker: Para contenedores de desarrollo y producción
 
-Heroku/Render: Despliegue de la base de datos y la aplicación
+Render: Despliegue de la base de datos y la aplicación
 
 Instalación
 
 1. Clonar el repositorio
 
-git clone https://github.com/tu-usuario/tu-repositorio.git
+git clone https://github.com//tu-repositorio.git
 cd tu-repositorio
 
 2. Crear y activar un entorno virtual (opcional, pero recomendado)
@@ -57,9 +56,6 @@ Docker
 
 docker-compose up --build -d
 
-2. Ejecutar contenedor Docker
-
-docker run --rm -it -p 8000:8000 nombre-del-contenedor
 
 Respaldo y Restauración de la Base de Datos
 
@@ -81,9 +77,9 @@ Variables de Entorno en Django
 
 Para gestionar las variables de entorno de manera segura en Django, puedes usar un paquete como python-decouple.
 
-1. Instalar python-decouple
+1. Instalar python-dotenv              
 
-pip install python-decouple
+'''pip install python-dotenv                 
 
 2. Crear un archivo .env
 
@@ -101,27 +97,7 @@ DB_PORT=5432
 
 3. Configurar Django para leer las variables de entorno
 
-En tu archivo settings.py de Django, importa Config desde decouple para cargar las variables del archivo .env.
 
-from decouple import Config, Csv
-
-config = Config()
-
-# Usar las variables de entorno para la configuración
-SECRET_KEY = config('SECRET_KEY')
-DEBUG = config('DEBUG', default=False, cast=bool)
-
-# Configuración de la base de datos
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST'),
-        'PORT': config('DB_PORT', default=5432, cast=int),
-    }
-}
 
 4. Asegúrate de que el archivo .env no sea versionado
 
@@ -140,19 +116,6 @@ API_KEY = config('API_KEY')
 
 Contribuciones
 
-Haz un fork de este repositorio.
-
-Crea una rama para tu característica (git checkout -b feature-nueva-caracteristica).
-
-Haz tus cambios y confirma (git commit -am 'Añadir nueva característica').
-
-Empuja a tu rama (git push origin feature-nueva-caracteristica).
-
-Crea un Pull Request.
-
-Licencia
-
-Este proyecto está bajo la licencia MIT. Mira el archivo LICENSE para más detalles.
 
 Contacto
 
