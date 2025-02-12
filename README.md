@@ -116,7 +116,7 @@ Para gestionar las variables de entorno de manera segura en Django, puedes usar 
 ### Contacto
 
 - **Nombre**: Adonay peña
-- **Correo**: tu_correo@example.com
+- **Correo**: luisadonaypenabriceno@gmail.com
 - **GitHub**: [@Adonay1398](https://github.com/Adonay1398)
 
 
