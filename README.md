@@ -14,8 +14,8 @@
 
 1. **Clonar el repositorio**
     ```bash
-    git clone https://github.com/tu-repositorio.git
-    cd tu-repositorio
+    git clone https://github.com/Adonay1398/server.git
+    cd server
     ```
 
 2. **Crear y activar un entorno virtual** (opcional, pero recomendado)
@@ -115,20 +115,8 @@ Para gestionar las variables de entorno de manera segura en Django, puedes usar 
 
 ### Contacto
 
-- **Nombre**: Adonay
+- **Nombre**: Adonay peña
 - **Correo**: tu_correo@example.com
-- **GitHub**: [@tu-usuario](https://github.com/tu-usuario)
+- **GitHub**: [@Adonay1398](https://github.com/Adonay1398)
 
-### Código de ejemplo
 
-```python
-# filepath: /C:/Users/luisb/pruebas.py
-asignaturas = ['Matemáticas', 'Física', 'Química', 'Historia', 'Lengua']
-scores = []
-
-for asignatura in asignaturas:
-    score = input("¿Qué calificación has sacado en " + asignatura + "? ")
-    scores.append(score)
-
-for i in range(len(asignaturas)):
-    print("En " + asignaturas[i] + " has sacado " + scores[i])
